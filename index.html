@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SSMT Timetable - Complete Fixed</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>SSMT Timetable - Complete Fixed with Global Save</title>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
@@ -22,6 +22,7 @@
             border-radius: 20px;
             overflow: hidden;
             box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            position: relative;
         }
         .header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -35,11 +36,10 @@
         }
         .header h1 { font-size: 18px; }
         .sync-status { background: rgba(255,255,255,0.2); padding: 4px 10px; border-radius: 20px; font-size: 11px; }
-        .sync-status.online { background: #4caf50; }
         .tabs { display: flex; background: #f0f0f0; overflow-x: auto; gap: 2px; }
         .tab { padding: 10px 16px; background: #e0e0e0; border: none; cursor: pointer; font-size: 13px; font-weight: 500; white-space: nowrap; }
         .tab.active { background: white; color: #667eea; border-bottom: 3px solid #667eea; }
-        .content { padding: 15px; }
+        .content { padding: 15px; padding-bottom: 70px; }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
         .card { background: #f8f9fa; border-radius: 10px; padding: 12px; margin-bottom: 12px; }
@@ -168,8 +168,6 @@
             70% { opacity: 1; }
             100% { opacity: 0; visibility: hidden; }
         }
-        
-        /* Dashboard Tables */
         .dashboard-stats { display: grid; grid-template-columns: 1fr; gap: 15px; }
         .stat-card { background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
         .stat-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 8px 12px; font-weight: bold; font-size: 13px; }
@@ -178,8 +176,6 @@
         .dashboard-table th, .dashboard-table td { border: 1px solid #ddd; padding: 6px; text-align: left; }
         .dashboard-table th { background: #667eea; color: white; }
         .total-row { background: #f0f0f0; font-weight: bold; }
-        
-        /* Timetable Header */
         .timetable-header { text-align: center; margin-bottom: 15px; display: flex; align-items: center; justify-content: center; gap: 15px; flex-wrap: wrap; }
         .timetable-header .logo-container img { max-height: 60px; max-width: 100px; object-fit: contain; }
         .timetable-header .academic-year { font-size: 11px; color: #666; }
@@ -193,12 +189,29 @@
         .day-selector { display: flex; gap: 5px; margin-top: 8px; flex-wrap: wrap; }
         .day-selector .day-check { display: flex; align-items: center; gap: 3px; background: #e0e0e0; padding: 3px 6px; border-radius: 12px; font-size: 10px; }
         .avail-time-item { background: #e8f5e9; padding: 6px; margin: 4px 0; border-radius: 5px; display: flex; justify-content: space-between; align-items: center; font-size: 11px; }
-        
-        /* Print Styles - Keep Colors */
+        .global-period-item { background: #e3f2fd; padding: 6px; margin: 4px 0; border-radius: 5px; display: flex; justify-content: space-between; align-items: center; font-size: 11px; }
+        /* Floating Save Button */
+        .floating-save {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 50px;
+            padding: 12px 20px;
+            font-size: 14px;
+            font-weight: bold;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            cursor: pointer;
+            z-index: 999;
+            transition: 0.2s;
+        }
+        .floating-save:hover { background: #218838; transform: scale(1.02); }
         @media print {
             body { background: white; padding: 0; margin: 0; }
             .container { box-shadow: none; border-radius: 0; max-width: 100%; }
-            .header, .tabs, .add-btn, .sync-status, .tab, .btn-sm, button:not(.print-btn), .modal, .toast, .card:not(.printable) { display: none !important; }
+            .header, .tabs, .add-btn, .sync-status, .tab, .btn-sm, button:not(.print-btn), .modal, .toast, .card:not(.printable), .floating-save { display: none !important; }
             .timetable th, .timetable td { border: 1px solid #000 !important; padding: 4px !important; }
             .timetable { font-size: 9px !important; }
             .timetable th.saturday { background: #ff9800 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -217,57 +230,25 @@
             @page { size: A4; margin: 0.8cm; }
         }
         .teacher-class-info { font-size: 11px; color: #666; margin-top: 3px; }
-        
-        /* ===== MOBILE RESPONSIVE ===== */
         @media (max-width: 768px) {
             body { padding: 0; }
             .container { border-radius: 0; }
             .header { padding: 10px 12px; }
             .header h1 { font-size: 14px; }
-            .content { padding: 8px; }
+            .content { padding: 8px; padding-bottom: 70px; }
             .tabs { gap: 1px; }
             .tab { padding: 8px 10px; font-size: 11px; }
             .card { padding: 10px; margin-bottom: 8px; }
-            .card h3 { font-size: 13px; }
             .grid-2, .grid-3 { grid-template-columns: 1fr; gap: 8px; }
-            input, select { font-size: 16px; } /* prevent iOS zoom */
+            input, select { font-size: 16px; }
             button { font-size: 12px; padding: 8px 12px; }
-            .btn-sm { font-size: 11px; padding: 6px 10px; }
-            
-            /* Timetable — horizontal scroll on mobile */
-            .timetable-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+            .timetable-wrapper { overflow-x: auto; }
             .timetable { font-size: 9px; min-width: 500px; }
-            .timetable th, .timetable td { padding: 4px 3px; }
-            .schedule-card { font-size: 9px; padding: 3px; }
             .schedule-card strong { font-size: 9px; }
-            .add-btn { width: 20px; height: 20px; font-size: 13px; line-height: 18px; }
-            .time-cell { width: 55px; font-size: 9px; }
-            
-            /* Dashboard */
-            .dashboard-stats { grid-template-columns: 1fr; }
-            .stat-body { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+            .time-cell { width: 55px; }
             .dashboard-table { font-size: 10px; min-width: 400px; }
-            .timetable-header { flex-direction: column; gap: 6px; text-align: center; }
-            
-            /* Print buttons — stack vertically */
-            .print-options { flex-direction: column; gap: 6px; }
-            .print-options button { width: 100%; }
-            
-            /* Modal */
-            .modal-content { width: 95%; max-height: 90vh; padding: 15px; }
-            
-            /* Item lists */
-            .item { flex-wrap: wrap; gap: 6px; }
-            .item > div { flex: 1; min-width: 0; }
-
-            /* Period editor rows */
-            #periods-list > div { flex-wrap: wrap; }
-            #periods-list input, #periods-list select { font-size: 14px; }
-        }
-        @media (max-width: 480px) {
-            .tabs { font-size: 10px; }
-            .tab { padding: 7px 7px; font-size: 10px; }
-            .timetable { min-width: 420px; }
+            .print-options { flex-direction: column; }
+            .floating-save { padding: 8px 16px; font-size: 12px; bottom: 16px; right: 16px; }
         }
     </style>
 </head>
@@ -276,7 +257,7 @@
     <div class="header">
         <h1>📅 SSMT Timetable Manager</h1>
         <div style="display: flex; gap: 10px; align-items: center;">
-            <div id="sync-status" class="sync-status">🔄 Connecting...</div>
+            <div id="sync-status" class="sync-status">💾 Local Only</div>
         </div>
     </div>
     <div class="tabs">
@@ -285,10 +266,10 @@
         <button class="tab" onclick="switchTab('teachers')">👨‍🏫 Teachers</button>
         <button class="tab" onclick="switchTab('classes')">🏫 Classes</button>
         <button class="tab" onclick="switchTab('subjects')">📚 Subjects</button>
-        <button class="tab" onclick="switchTab('periods')">⏰ Periods</button>
+        <button class="tab" onclick="switchTab('periods')">⏰ Class Periods</button>
         <button class="tab" onclick="switchTab('settings')">⚙️ Settings</button>
     </div>
-    <div class="content">
+    <div class="content" id="main-content">
         <!-- Dashboard -->
         <div id="dashboard-content" class="tab-content active">
             <div class="card">
@@ -318,13 +299,14 @@
                     <label><input type="radio" name="viewType" value="teacher" checked onchange="changeViewType('teacher')"> 👨‍🏫 By Teacher</label>
                     <label><input type="radio" name="viewType" value="class" onchange="changeViewType('class')"> 🏫 By Class</label>
                 </div>
-                <div class="form-group"><label id="select-label">Select Teacher</label><select id="view-select" onchange="renderTimetable()"></select></div>
+                <div class="form-group"><label id="select-label">Select Teacher</label><select id="view-select" onchange="onViewSelectChange()"></select></div>
+                <div id="teacher-class-selector" style="display:none;" class="form-group"><label>📖 Select Class for Timetable (Periods)</label><select id="teacher-class-choice" onchange="renderTimetable()"></select></div>
                 <div id="teacher-class-info" class="teacher-class-info"></div>
                 <div class="print-options">
                     <button onclick="printTimetable(false, 'horizontal')" class="btn-sm">🖨️ Print (Horizontal Days)</button>
                     <button onclick="printTimetable(false, 'vertical')" class="btn-sm">🖨️ Print (Vertical Days)</button>
-                    <button onclick="printTimetable(true, 'horizontal')" class="btn-sm">🖨️ Print (No Teacher, Horizontal)</button>
-                    <button onclick="printTimetable(true, 'vertical')" class="btn-sm">🖨️ Print (No Teacher, Vertical)</button>
+                    <button id="printNoTeacherBtn" onclick="printTimetable(true, 'horizontal')" class="btn-sm">🖨️ Print (No Teacher, Horizontal)</button>
+                    <button id="printNoTeacherVertBtn" onclick="printTimetable(true, 'vertical')" class="btn-sm">🖨️ Print (No Teacher, Vertical)</button>
                 </div>
                 <div class="timetable-wrapper" id="timetable-container"></div>
                 <div id="timetable-footer-container"></div>
@@ -339,7 +321,7 @@
                 <div class="grid-2"><input type="text" id="teacher-name" placeholder="Teacher Name"><input type="color" id="teacher-color" value="#2196f3"></div>
                 <div class="form-group"><label>📚 Subjects</label><div id="teacher-subjects-list" class="checkbox-group"></div></div>
                 <div class="form-group">
-                    <label>⏰ Available Times</label>
+                    <label>⏰ Available Times (based on GLOBAL PERIODS)</label>
                     <div id="teacher-available-list"></div>
                     <div class="grid-3">
                         <select id="avail-day"><option value="Monday">Mon</option><option value="Tuesday">Tue</option><option value="Wednesday">Wed</option><option value="Thursday">Thu</option><option value="Friday">Fri</option><option value="Saturday">Sat</option><option value="Sunday">Sun</option></select>
@@ -371,23 +353,27 @@
         
         <!-- Subjects -->
         <div id="subjects-content" class="tab-content">
-            <div class="card"><h3>📚 Add Subject</h3><div class="grid-3"><input id="subject-name" placeholder="Subject" oninput="autoCode()"><input id="subject-code" placeholder="Code"><input type="color" id="subject-color" value="#2196f3"></div><div class="form-group"><label>📂 Portions (comma separated)</label><input type="text" id="subject-portions" placeholder="e.g., P1, P2, Guide"></div><button onclick="addSubject()">Add Subject</button><div class="quick-buttons"><button class="btn-sm" onclick="quickSubject('Myanmar')">Myanmar</button><button class="btn-sm" onclick="quickSubject('English')">English</button><button class="btn-sm" onclick="quickSubject('Mathematics')">Math</button><button class="btn-sm" onclick="quickSubject('Physics')">Physics</button><button class="btn-sm" onclick="quickSubject('Chemistry')">Chemistry</button><button class="btn-sm" onclick="quickSubject('Biology')">Biology</button></div></div>
+            <div class="card"><h3>📚 Add Subject (Auto Random Color)</h3><div class="grid-3"><input id="subject-name" placeholder="Subject" oninput="autoCode()"><input id="subject-code" placeholder="Code"><input type="color" id="subject-color" value="#2196f3"></div><div class="form-group"><label>📂 Portions (comma separated) – each portion will have its own shade</label><input type="text" id="subject-portions" placeholder="e.g., P1, P2, Guide"></div><button onclick="addSubject()">Add Subject</button><div class="quick-buttons"><button class="btn-sm" onclick="quickSubject('Myanmar')">Myanmar</button><button class="btn-sm" onclick="quickSubject('English')">English</button><button class="btn-sm" onclick="quickSubject('Mathematics')">Math</button><button class="btn-sm" onclick="quickSubject('Physics')">Physics</button><button class="btn-sm" onclick="quickSubject('Chemistry')">Chemistry</button><button class="btn-sm" onclick="quickSubject('Biology')">Biology</button></div></div>
             <div class="card"><h3>Subjects List</h3><div id="subjects-list" class="item-list"></div></div>
         </div>
         
-        <!-- Periods -->
+        <!-- Class Periods -->
         <div id="periods-content" class="tab-content">
-            <div class="card"><h3>⏰ Period Settings</h3><div class="grid-2"><select id="period-class-select" onchange="loadPeriods()"></select><select id="clone-from-class"></select></div><button onclick="clonePeriods()" class="btn-sm">Clone Periods</button><div id="periods-list"></div><button onclick="addPeriodRow()">➕ Add Period</button><button onclick="savePeriods()" class="btn-success">💾 Save</button></div>
+            <div class="card"><h3>⏰ Class-Specific Period Settings</h3><div class="grid-2"><select id="period-class-select" onchange="loadPeriods()"></select><select id="clone-from-class"></select></div><button onclick="clonePeriods()" class="btn-sm">Clone Periods</button><div id="periods-list"></div><button onclick="addPeriodRow()">➕ Add Period</button><button onclick="savePeriods()" class="btn-success">💾 Save</button><p class="note" style="font-size:11px; margin-top:8px;">Note: Teacher View & Availability uses GLOBAL PERIODS (set in Settings tab).</p></div>
         </div>
         
         <!-- Settings -->
         <div id="settings-content" class="tab-content">
+            <div class="card"><h3>🌍 Global Periods (for Teacher View & Availability)</h3><div id="global-periods-list" class="item-list"></div><div class="grid-2"><input type="text" id="global-period-name" placeholder="Name (e.g. Period 1)"><input type="time" id="global-period-start" value="08:00"><input type="time" id="global-period-end" value="09:00"><select id="global-period-type"><option value="class">Class</option><option value="break">Break</option><option value="lunch">Lunch</option><option value="duty">Duty</option></select></div><button onclick="addGlobalPeriod()">Add Global Period</button><button onclick="resetGlobalPeriods()" class="btn-sm">Reset Default Periods</button></div>
             <div class="card"><h3>📅 Custom Days</h3><div id="days-list" class="item-list"></div><div class="grid-2"><input id="new-day"><button onclick="addDay()">Add Day</button></div><button onclick="resetDays()" class="btn-sm">Reset to Mon-Sat</button></div>
             <div class="card"><h3>🎉 Holidays</h3><div class="grid-2"><input type="date" id="holiday-date"><input id="holiday-name" placeholder="Name"></div><button onclick="addHoliday()">Add</button><div id="holidays-list" class="item-list"></div></div>
-            <div class="card"><h3>📥 Data</h3><button onclick="exportData()">Export</button><button onclick="importData()">Import</button><input type="file" id="import-file" style="display:none;"><button onclick="forceCloudSync()" class="btn-success">☁️ Sync to Cloud</button><button onclick="migrateOldData()" class="btn-warning" style="margin-top:6px;">🔄 Migrate Old Data</button><div id="migrate-status" style="font-size:11px; margin-top:4px;"></div></div>
+            <div class="card"><h3>📥 Data Management</h3><button onclick="exportData()">Export</button><button onclick="importData()">Import</button><input type="file" id="import-file" style="display:none;"><button onclick="forceCloudSync()" class="btn-success">☁️ Sync to Cloud</button><button onclick="loadFromCloudManual()" class="btn-warning">📥 Load from Cloud</button><div id="migrate-status" style="font-size:11px; margin-top:4px;"></div></div>
         </div>
     </div>
 </div>
+
+<!-- Floating Save Button -->
+<button class="floating-save" onclick="globalSave()">💾 Save All Changes</button>
 
 <!-- Schedule Modal -->
 <div id="schedule-modal" class="modal"><div class="modal-content"><h3 id="modal-title">Add Schedule</h3>
@@ -416,53 +402,39 @@
     // Data
     let teachers = [], classes = [], subjects = [], schedules = [], holidays = [], classPeriods = {};
     let customDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    let globalPeriods = [
+        { name:"Period 1", start:"08:00", end:"09:00", type:"class" },
+        { name:"Period 2", start:"09:00", end:"10:00", type:"class" },
+        { name:"Period 3", start:"10:00", end:"11:00", type:"class" },
+        { name:"Break", start:"11:00", end:"11:15", type:"break" },
+        { name:"Period 4", start:"11:15", end:"12:15", type:"class" },
+        { name:"Lunch", start:"12:15", end:"13:15", type:"lunch" },
+        { name:"Period 5", start:"13:15", end:"14:15", type:"class" },
+        { name:"Period 6", start:"14:15", end:"15:15", type:"class" }
+    ];
     let currentView = 'teacher';
     let modalContext = { editIndex: -1 };
     let currentUser = null;
     let schoolInfo = { name: "Shining Stars - Ma Thwe Private High School", year: "2026-2027", phone: "09-123456789", logo: null };
     
+    // Helper functions
     function showToast(msg, type='success') { let t=document.createElement('div'); t.className='toast '+(type==='error'?'error':(type==='warning'?'warning':'')); t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),2000); }
-    
-    // Logo Functions
-    function uploadLogo(input) {
-        if (input.files && input.files[0]) {
-            const reader = new FileReader();
-            reader.onload = function(e) { schoolInfo.logo = e.target.result; document.getElementById('logo-preview').innerHTML = `<img src="${schoolInfo.logo}" alt="Logo">`; saveSchoolInfo(); showToast("Logo uploaded"); };
-            reader.readAsDataURL(input.files[0]);
-        }
+    function randomColor() { return '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6,'0'); }
+    function getPortionColor(subjectId, portion) {
+        let subject = subjects.find(s=>s.id==subjectId);
+        if(!subject) return '#2196f3';
+        let base = subject.color || '#2196f3';
+        if(!portion) return base;
+        let hash = 0;
+        for(let i=0; i<portion.length; i++) hash = ((hash<<5)-hash)+portion.charCodeAt(i);
+        let hue = parseInt(base.slice(1),16);
+        let r = (hue >> 16) & 0xff, g = (hue >> 8) & 0xff, b = hue & 0xff;
+        let shift = (hash % 40) - 20;
+        let nr = Math.min(255, Math.max(0, r + shift));
+        let ng = Math.min(255, Math.max(0, g + shift));
+        let nb = Math.min(255, Math.max(0, b + shift));
+        return `#${((nr<<16)|(ng<<8)|nb).toString(16).padStart(6,'0')}`;
     }
-    function removeLogo() { schoolInfo.logo = null; document.getElementById('logo-preview').innerHTML = '<span>No Logo</span>'; document.getElementById('logo-upload').value = ''; saveSchoolInfo(); showToast("Logo removed"); }
-    function updateLogoPreview() { const preview = document.getElementById('logo-preview'); if (schoolInfo.logo) preview.innerHTML = `<img src="${schoolInfo.logo}" alt="Logo">`; else preview.innerHTML = '<span>No Logo</span>'; }
-    
-    async function saveToFirestore() { if(!currentUser) return; try { await db.collection('school').doc('shared').set({ teachers, classes, subjects, schedules, holidays, classPeriods, customDays, schoolInfo, updated: firebase.firestore.FieldValue.serverTimestamp() }); document.getElementById('sync-status').innerHTML = '☁️ Synced'; document.getElementById('sync-status').className = 'sync-status online'; } catch(e) { document.getElementById('sync-status').innerHTML = '⚠️ Offline'; } }
-    async function loadFromFirestore() { if(!currentUser) return; try { let doc = await db.collection('school').doc('shared').get(); if(doc.exists) { let d = doc.data(); let localRaw = localStorage.getItem('tm_data'); let localTs = localRaw ? (JSON.parse(localRaw)._updated||0) : 0; let cloudTs = d.updated?.toMillis()||0; if(cloudTs >= localTs) { teachers=d.teachers||[]; classes=d.classes||[]; subjects=d.subjects||[]; schedules=d.schedules||[]; holidays=d.holidays||[]; classPeriods=d.classPeriods||{}; customDays=d.customDays||['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']; if(d.schoolInfo) schoolInfo=d.schoolInfo; updateLogoPreview(); updateSchoolInfoForm(); saveToLocal(); updateAll(); } } else { await saveToFirestore(); } document.getElementById('sync-status').innerHTML = '☁️ Synced'; document.getElementById('sync-status').className = 'sync-status online'; } catch(e) { document.getElementById('sync-status').innerHTML = '⚠️ Offline'; } }
-    function loadFromLocal() { let data = localStorage.getItem('tm_data'); if(data) { let d = JSON.parse(data); teachers=d.teachers||[]; classes=d.classes||[]; subjects=d.subjects||[]; schedules=d.schedules||[]; holidays=d.holidays||[]; classPeriods=d.classPeriods||{}; customDays=d.customDays||['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']; if(d.schoolInfo) schoolInfo=d.schoolInfo; updateLogoPreview(); updateSchoolInfoForm(); } updateAll(); }
-    function saveToLocal() { localStorage.setItem('tm_data', JSON.stringify({teachers,classes,subjects,schedules,holidays,classPeriods,customDays,schoolInfo,_updated:Date.now()})); }
-    function forceCloudSync() { saveToLocal(); saveToFirestore(); showToast("Synced to cloud"); }
-    function updateSchoolInfoForm() { let n=document.getElementById('school-name'), y=document.getElementById('academic-year'), p=document.getElementById('school-phone'); if(n) n.value=schoolInfo.name; if(y) y.value=schoolInfo.year; if(p) p.value=schoolInfo.phone; }
-    // ★ LocalStorage မှ ချက်ချင်း load → ဖုန်းမှာ Connecting မပြတော့
-    loadFromLocal();
-    firebase.auth().onAuthStateChanged(async (user) => {
-        if(user) { currentUser=user; document.getElementById('sync-status').innerHTML='🔄 Syncing...'; await loadFromFirestore(); }
-        else { firebase.auth().signInAnonymously().catch(e=>{ document.getElementById('sync-status').innerHTML='⚠️ Offline'; }); }
-    });
-    
-    // Helpers
-    function getTeacherName(id) { let t=teachers.find(x=>x.id==id); return t?t.name:'Unknown'; }
-    function getTeacherColor(id) { let t=teachers.find(x=>x.id==id); return t?t.color:'#2196f3'; }
-    function getSubjectName(id) { let s=subjects.find(x=>x.id==id); return s?s.name:'Unknown'; }
-    function getSubjectColor(id) { let s=subjects.find(x=>x.id==id); return s?s.color:'#2196f3'; }
-    function getClassName(id) { let c=classes.find(x=>x.id==id); return c?`${c.name} - ${c.section}`:'Unknown'; }
-    function getPeriods(cid) { return classPeriods[cid] && classPeriods[cid].length ? classPeriods[cid] : [
-        {name:"Period 1", start:"08:00", end:"09:00", type:"class"},
-        {name:"Period 2", start:"09:00", end:"10:00", type:"class"},
-        {name:"Period 3", start:"10:00", end:"11:00", type:"class"},
-        {name:"Break", start:"11:00", end:"11:15", type:"break"},
-        {name:"Period 4", start:"11:15", end:"12:15", type:"class"},
-        {name:"Lunch", start:"12:15", end:"13:15", type:"lunch"},
-        {name:"Period 5", start:"13:15", end:"14:15", type:"class"},
-        {name:"Period 6", start:"14:15", end:"15:15", type:"class"}
-    ];}
     function getDurationHours(start, end) {
         if(!start || !end) return 1;
         let s = parseInt(start.split(':')[0])*60 + parseInt((start.split(':')[1])||0);
@@ -470,243 +442,263 @@
         let diff = (e - s) / 60;
         return diff > 0 ? parseFloat(diff.toFixed(2)) : 1;
     }
+    function getTeacherName(id) { let t=teachers.find(x=>x.id==id); return t?t.name:'Unknown'; }
+    function getTeacherColor(id) { let t=teachers.find(x=>x.id==id); return t?t.color:'#2196f3'; }
+    function getSubjectName(id) { let s=subjects.find(x=>x.id==id); return s?s.name:'Unknown'; }
+    function getSubjectColor(id) { let s=subjects.find(x=>x.id==id); return s?s.color:'#2196f3'; }
+    function getClassName(id) { let c=classes.find(x=>x.id==id); return c?`${c.name} - ${c.section}`:'Unknown'; }
+    function getPeriodsForClass(cid) { return classPeriods[cid] && classPeriods[cid].length ? classPeriods[cid] : globalPeriods; }
     function getTeacherClassString(teacherId) { let ts = schedules.filter(s => s.teacher == teacherId && s.type === 'class'); let uc = [...new Set(ts.map(s => getClassName(s.classId)))]; return uc.join(', '); }
-
+    
+    // Local & Cloud
+    function saveToLocal() { localStorage.setItem('tm_data', JSON.stringify({teachers,classes,subjects,schedules,holidays,classPeriods,customDays,schoolInfo,globalPeriods,_updated:Date.now()})); showToast("Saved to local storage"); }
+    function loadFromLocal() { let data = localStorage.getItem('tm_data'); if(data) { let d = JSON.parse(data); teachers=d.teachers||[]; classes=d.classes||[]; subjects=d.subjects||[]; schedules=d.schedules||[]; holidays=d.holidays||[]; classPeriods=d.classPeriods||{}; customDays=d.customDays||['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']; if(d.schoolInfo) schoolInfo=d.schoolInfo; if(d.globalPeriods) globalPeriods=d.globalPeriods; updateLogoPreview(); updateSchoolInfoForm(); } updateAll(); }
+    async function saveToFirestore() { if(!currentUser) return; try { await db.collection('school').doc('shared').set({ teachers, classes, subjects, schedules, holidays, classPeriods, customDays, schoolInfo, globalPeriods, updated: firebase.firestore.FieldValue.serverTimestamp() }); document.getElementById('sync-status').innerHTML = '☁️ Synced'; document.getElementById('sync-status').className = 'sync-status online'; showToast("Saved to cloud"); } catch(e) { document.getElementById('sync-status').innerHTML = '⚠️ Offline'; showToast("Cloud save failed", "error"); } }
+    async function loadFromCloudManual() { if(!currentUser) { showToast("Please wait for authentication","warning"); return; } try { let doc = await db.collection('school').doc('shared').get(); if(doc.exists) { let d = doc.data(); teachers=d.teachers||[]; classes=d.classes||[]; subjects=d.subjects||[]; schedules=d.schedules||[]; holidays=d.holidays||[]; classPeriods=d.classPeriods||{}; customDays=d.customDays||['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']; if(d.schoolInfo) schoolInfo=d.schoolInfo; if(d.globalPeriods) globalPeriods=d.globalPeriods; saveToLocal(); updateAll(); showToast("Loaded from cloud"); } else { showToast("No cloud data found","warning"); } } catch(e) { showToast("Error loading from cloud","error"); } }
+    function forceCloudSync() { saveToLocal(); saveToFirestore(); }
+    function globalSave() { saveToLocal(); saveToFirestore(); showToast("All data saved to local & cloud"); }
+    
+    // School info
+    function uploadLogo(input) { if (input.files && input.files[0]) { const reader = new FileReader(); reader.onload = function(e) { schoolInfo.logo = e.target.result; document.getElementById('logo-preview').innerHTML = `<img src="${schoolInfo.logo}" alt="Logo">`; saveSchoolInfo(); showToast("Logo uploaded"); }; reader.readAsDataURL(input.files[0]); } }
+    function removeLogo() { schoolInfo.logo = null; document.getElementById('logo-preview').innerHTML = '<span>No Logo</span>'; document.getElementById('logo-upload').value = ''; saveSchoolInfo(); showToast("Logo removed"); }
+    function updateLogoPreview() { const preview = document.getElementById('logo-preview'); if (schoolInfo.logo) preview.innerHTML = `<img src="${schoolInfo.logo}" alt="Logo">`; else preview.innerHTML = '<span>No Logo</span>'; }
+    function saveSchoolInfo() { schoolInfo.name = document.getElementById('school-name').value; schoolInfo.year = document.getElementById('academic-year').value; schoolInfo.phone = document.getElementById('school-phone').value; saveToLocal(); saveToFirestore(); updateTimetableHeader(); showToast("School info saved"); }
+    function updateSchoolInfoForm() { let n=document.getElementById('school-name'), y=document.getElementById('academic-year'), p=document.getElementById('school-phone'); if(n) n.value=schoolInfo.name; if(y) y.value=schoolInfo.year; if(p) p.value=schoolInfo.phone; }
+    
+    // Dashboard
     function updateDashboard() {
-        // teacherStats[tid] = { byType: {class:{periods,hours,dailyHours,classDetails}, duty:{...}, break:{...}, lunch:{...}} }
-        let teacherStats = {};
-        let classStats   = {};
+        let teacherStats = {}, classStats = {};
         let TYPES = ['class','duty','break','lunch'];
         let TYPE_LABEL = { class:'📖 သင်ချိန်', duty:'🔔 Duty', break:'☕ Break', lunch:'🍽️ Lunch' };
         let TYPE_COLOR = { class:'#1565c0', duty:'#e65100', break:'#6a1b9a', lunch:'#880e4f' };
         let TYPE_BG    = { class:'#e3f2fd', duty:'#fff3e0', break:'#f3e5f5', lunch:'#fce4ec' };
         let dayShort   = { Monday:'တနင်္လာ', Tuesday:'အင်္ဂါ', Wednesday:'ဗုဒ္ဓဟူး', Thursday:'ကြာသပတေး', Friday:'သောကြာ', Saturday:'စနေ', Sunday:'တနင်္ဂနွေ' };
-
         schedules.forEach(s => {
             if(!TYPES.includes(s.type)) return;
             if(!teachers.some(t=>t.id==s.teacher)) return;
-
             let startTime = s.startTime, endTime = s.endTime;
             if(!startTime || !endTime) {
-                let ps = getPeriods(s.classId);
+                let ps = getPeriodsForClass(s.classId);
                 let p  = ps.find(p => p.name === s.periodName);
                 if(p) { startTime = p.start; endTime = p.end; }
             }
             let hours = getDurationHours(startTime, endTime);
             let day   = s.day || 'Unknown';
-
-            if(!teacherStats[s.teacher]) {
-                teacherStats[s.teacher] = {};
-                TYPES.forEach(t => teacherStats[s.teacher][t] = { periods:0, hours:0, dailyHours:{}, classDetails:{} });
-            }
+            if(!teacherStats[s.teacher]) { teacherStats[s.teacher] = {}; TYPES.forEach(t => teacherStats[s.teacher][t] = { periods:0, hours:0, dailyHours:{}, classDetails:{} }); }
             let ts = teacherStats[s.teacher][s.type];
-            ts.periods++;
-            ts.hours += hours;
-            ts.dailyHours[day] = (ts.dailyHours[day]||0) + hours;
-
-            // class detail: which class + subject
+            ts.periods++; ts.hours += hours; ts.dailyHours[day] = (ts.dailyHours[day]||0) + hours;
             if(s.type === 'class' && classes.some(c=>c.id==s.classId) && subjects.some(sub=>sub.id==s.subject)) {
-                let className   = getClassName(s.classId);
-                let subjectName = getSubjectName(s.subject);
+                let className = getClassName(s.classId), subjectName = getSubjectName(s.subject);
                 let key = className+'|'+subjectName;
                 if(!ts.classDetails[key]) ts.classDetails[key] = { className, subjectName, periods:0, hours:0 };
-                ts.classDetails[key].periods++;
-                ts.classDetails[key].hours += hours;
-
-                // class stats (for class stats table)
+                ts.classDetails[key].periods++; ts.classDetails[key].hours += hours;
                 if(!classStats[s.classId]) classStats[s.classId] = { periods:0, hours:0, subjects:{}, teacherDetails:{} };
-                classStats[s.classId].periods++;
-                classStats[s.classId].hours += hours;
+                classStats[s.classId].periods++; classStats[s.classId].hours += hours;
                 if(!classStats[s.classId].subjects[subjectName]) classStats[s.classId].subjects[subjectName] = {periods:0, hours:0};
-                classStats[s.classId].subjects[subjectName].periods++;
-                classStats[s.classId].subjects[subjectName].hours += hours;
+                classStats[s.classId].subjects[subjectName].periods++; classStats[s.classId].subjects[subjectName].hours += hours;
                 let tName = getTeacherName(s.teacher);
                 if(!classStats[s.classId].teacherDetails[tName]) classStats[s.classId].teacherDetails[tName] = {periods:0, hours:0};
-                classStats[s.classId].teacherDetails[tName].periods++;
-                classStats[s.classId].teacherDetails[tName].hours += hours;
+                classStats[s.classId].teacherDetails[tName].periods++; classStats[s.classId].teacherDetails[tName].hours += hours;
             }
         });
-
         let html = '';
-
-        // ===== SUMMARY TABLE — ဆရာတစ်ဦးစီ × အတန်း → ချိန် =====
-        // Collect unique class names sorted
         let allClassIds = [...new Set(schedules.filter(s=>s.type==='class').map(s=>s.classId))];
         let allClassNames = allClassIds.map(id=>({id, name:getClassName(id)})).sort((a,b)=>a.name.localeCompare(b.name));
-
-        html += `<div class="stat-card"><div class="stat-header">📋 Quick Summary — ဆရာ/မ × အတန်း သင်ချိန်</div><div class="stat-body" style="overflow-x:auto">`;
-        html += `<table class="dashboard-table"><thead><tr>
-            <th style="min-width:100px">ဆရာ/မ</th>
-            ${allClassNames.map(c=>`<th style="min-width:60px;font-size:10px">${c.name}</th>`).join('')}
-            <th style="background:#1565c0;min-width:60px">စုစုပေါင်း</th>
-        </tr></thead><tbody>`;
-
-        let sortedTeachers = Object.entries(teacherStats).sort((a,b)=>
-            getTeacherName(parseInt(a[0])).localeCompare(getTeacherName(parseInt(b[0]))));
-
+        html += `<div class="stat-card"><div class="stat-header">📋 Quick Summary</div><div class="stat-body"><table class="dashboard-table"><thead><th>ဆရာ/မ</th>${allClassNames.map(c=>`<th>${c.name}</th>`).join('')}<th>စုစုပေါင်း</th></thead><tbody>`;
+        let sortedTeachers = Object.entries(teacherStats).sort((a,b)=>getTeacherName(parseInt(a[0])).localeCompare(getTeacherName(parseInt(b[0]))));
         for(let [tid, byType] of sortedTeachers) {
-            if(byType.class.periods === 0) continue; // summary shows class only
-            let tName  = getTeacherName(parseInt(tid));
-            let tColor = getTeacherColor(parseInt(tid));
+            if(byType.class.periods === 0) continue;
+            let tName = getTeacherName(parseInt(tid)), tColor = getTeacherColor(parseInt(tid));
             let grandH = 0;
-            html += `<tr>
-                <td><strong style="color:${tColor}">👨‍🏫 ${tName}</strong></td>`;
-            for(let {id, name} of allClassNames) {
-                // sum hours for this teacher × this class
-                let h = Object.entries(byType.class.classDetails)
-                    .filter(([k])=>k.startsWith(name+'|'))
-                    .reduce((a,[,d])=>a+d.hours, 0);
+            html += `<tr><td><strong style="color:${tColor}">👨‍🏫 ${tName}</strong></td>`;
+            for(let {id,name} of allClassNames) {
+                let h = Object.entries(byType.class.classDetails).filter(([k])=>k.startsWith(name+'|')).reduce((a,[,d])=>a+d.hours,0);
                 grandH += h;
-                html += `<td style="text-align:center;font-size:11px;${h>0?`background:${tColor}18;font-weight:600;color:${tColor}`:''}">${h>0?h.toFixed(1)+'h':'—'}</td>`;
+                html += `<td style="text-align:center;${h>0?`background:${tColor}18;font-weight:600`:'color:#999'}">${h>0?h.toFixed(1)+'h':'—'}</td>`;
             }
-            html += `<td style="text-align:center;font-weight:bold;color:#1565c0">${grandH.toFixed(1)}h</td></tr>`;
+            html += `<td style="text-align:center;font-weight:bold">${grandH.toFixed(1)}h</td></tr>`;
         }
-        html += `</tbody></table></div></div>`;
-
-        // ===== TEACHER DETAIL STATS — sorted A→Z, class details collapsible =====
-        html += `<div class="stat-card"><div class="stat-header">👨‍🏫 ဆရာ/မ — နေ့စဉ် & အမျိုးအစားအလိုက် သင်ချိန်</div><div class="stat-body">`;
-
+        html += `</tbody><table></div></div>`;
+        html += `<div class="stat-card"><div class="stat-header">👨‍🏫 ဆရာ/မ အသေးစိတ်</div><div class="stat-body">`;
         for(let [tid, byType] of sortedTeachers) {
-            let tName  = getTeacherName(parseInt(tid));
-            let tColor = getTeacherColor(parseInt(tid));
-
-            // Sort class details: subject A→Z then class A→Z
-            let sortedClassDetails = Object.values(byType.class.classDetails).sort((a,b)=>{
-                let s = a.subjectName.localeCompare(b.subjectName);
-                return s !== 0 ? s : a.className.localeCompare(b.className);
-            });
-
+            let tName = getTeacherName(parseInt(tid)), tColor = getTeacherColor(parseInt(tid));
+            let sortedClassDetails = Object.values(byType.class.classDetails).sort((a,b)=>a.subjectName.localeCompare(b.subjectName));
             let classNames = [...new Set(sortedClassDetails.map(d=>d.className))].join(', ') || '—';
-            let totalP = TYPES.reduce((a,t)=>a+byType[t].periods, 0);
-            let totalH = TYPES.reduce((a,t)=>a+byType[t].hours,   0);
-
-            html += `<div style="border:1px solid #e0e0e0;border-radius:8px;margin-bottom:12px;overflow:hidden">`;
-
-            // Teacher header — clickable to collapse/expand
-            html += `<div onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none';this.querySelector('.arr').textContent=this.nextElementSibling.style.display==='none'?'▶':'▼'"
-                style="background:${tColor}18;border-left:4px solid ${tColor};padding:8px 10px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;cursor:pointer;user-select:none">
-                <div>
-                    <span class="arr" style="font-size:10px;margin-right:4px">▼</span>
-                    <strong style="color:${tColor};font-size:13px">👨‍🏫 ${tName}</strong>
-                    <br><span style="font-size:10px;color:#666">🏫 ${classNames}</span>
-                </div>
-                <div style="text-align:right;font-size:11px">
-                    <span style="background:#1565c0;color:white;padding:2px 7px;border-radius:10px;margin-left:4px">${totalP} periods</span>
-                    <span style="background:#2e7d32;color:white;padding:2px 7px;border-radius:10px;margin-left:4px">${totalH.toFixed(1)} hrs</span>
-                </div>
-            </div>`;
-
-            // Collapsible detail body
-            html += `<div>`;
-            html += `<div style="overflow-x:auto"><table class="dashboard-table" style="margin:0">
-                <thead><tr>
-                    <th style="width:90px">အမျိုးအစား</th>
-                    ${customDays.map(d=>`<th style="font-size:10px;min-width:48px">${dayShort[d]||d.substring(0,3)}</th>`).join('')}
-                    <th>Periods</th><th>နာရီ</th>
-                </tr></thead><tbody>`;
-
-            TYPES.forEach(type => {
-                let ts = byType[type];
-                if(ts.periods === 0) return;
-                html += `<tr style="background:${TYPE_BG[type]}">
-                    <td style="font-weight:600;color:${TYPE_COLOR[type]}">${TYPE_LABEL[type]}</td>
-                    ${customDays.map(d=>{
-                        let h = ts.dailyHours[d]||0;
-                        return `<td style="text-align:center;font-size:10px;${h>0?`font-weight:600;color:${TYPE_COLOR[type]}`:''}">${h>0?h.toFixed(1)+'h':'—'}</td>`;
-                    }).join('')}
-                    <td style="text-align:center;font-weight:bold;color:${TYPE_COLOR[type]}">${ts.periods}</td>
-                    <td style="text-align:center;font-weight:bold;color:${TYPE_COLOR[type]}">${ts.hours.toFixed(1)}h</td>
-                </tr>`;
-
-                // Class details — collapsible sub-section
-                if(type === 'class' && sortedClassDetails.length > 0) {
+            let totalP = TYPES.reduce((a,t)=>a+byType[t].periods,0), totalH = TYPES.reduce((a,t)=>a+byType[t].hours,0);
+            html += `<div style="border:1px solid #e0e0e0;border-radius:8px;margin-bottom:12px"><div onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none';this.querySelector('.arr').textContent=this.nextElementSibling.style.display==='none'?'▶':'▼'" style="background:${tColor}18;border-left:4px solid ${tColor};padding:8px;cursor:pointer;display:flex;justify-content:space-between"><div><span class="arr">▼</span><strong>${tName}</strong><br><span style="font-size:10px">🏫 ${classNames}</span></div><div><span style="background:#1565c0;color:white;padding:2px 7px;border-radius:10px">${totalP} periods</span> <span style="background:#2e7d32;color:white;padding:2px 7px;border-radius:10px">${totalH.toFixed(1)} hrs</span></div></div><div><div style="overflow-x:auto"><table class="dashboard-table"><thead><th>အမျိုးအစား</th>${customDays.map(d=>`<th>${dayShort[d]||d.substring(0,3)}</th>`).join('')}<th>Periods</th><th>နာရီ</th></thead><tbody>`;
+            TYPES.forEach(type => { let ts = byType[type]; if(ts.periods===0) return;
+                html += `<tr style="background:${TYPE_BG[type]}"><td style="color:${TYPE_COLOR[type]}">${TYPE_LABEL[type]}</td>${customDays.map(d=>{ let h=ts.dailyHours[d]||0; return `<td style="text-align:center;${h>0?`font-weight:600;color:${TYPE_COLOR[type]}`:''}">${h>0?h.toFixed(1)+'h':'—'}</td>`;}).join('')}<td style="text-align:center">${ts.periods}</td><td style="text-align:center">${ts.hours.toFixed(1)}h</td></tr>`;
+                if(type==='class' && sortedClassDetails.length>0) {
                     let cdId = 'cd_'+tid;
-                    html += `<tr style="background:#eef2ff"><td colspan="${customDays.length+3}" style="padding:3px 6px">
-                        <span onclick="let el=document.getElementById('${cdId}');el.style.display=el.style.display==='none'?'':'none';this.textContent=el.style.display===''?'▲ အတန်းအလိုက် ချုံ့':'▼ အတန်းအလိုက် ကြည့်'"
-                        style="cursor:pointer;font-size:10px;color:#667eea;font-weight:600">▼ အတန်းအလိုက် ကြည့်</span>
-                    </td></tr>`;
-                    html += `<tbody id="${cdId}" style="display:none">`;
-                    for(let d of sortedClassDetails) {
-                        html += `<tr style="background:#f8fbff">
-                            <td style="padding-left:20px;font-size:10px;color:#555">↳ ${d.className}</td>
-                            <td colspan="${customDays.length}" style="font-size:10px;color:#667eea">${d.subjectName}</td>
-                            <td style="text-align:center;font-size:10px">${d.periods}</td>
-                            <td style="text-align:center;font-size:10px">${d.hours.toFixed(1)}h</td>
-                        </tr>`;
-                    }
+                    html += `<tr><td colspan="${customDays.length+3}" style="padding:3px"><span onclick="document.getElementById('${cdId}').style.display=document.getElementById('${cdId}').style.display==='none'?'':'none';this.textContent=document.getElementById('${cdId}').style.display===''?'▲ ချုံ့':'▼ အတန်းအလိုက်'" style="cursor:pointer;color:#667eea">▼ အတန်းအလိုက်</span></td></tr><tbody id="${cdId}" style="display:none">`;
+                    for(let d of sortedClassDetails) html += `<tr><td style="padding-left:20px">↳ ${d.className}</td><td colspan="${customDays.length}">${d.subjectName}</td><td style="text-align:center">${d.periods}</td><td style="text-align:center">${d.hours.toFixed(1)}h</td></tr>`;
                     html += `</tbody>`;
                 }
             });
-
-            // Total row
-            html += `<tr class="total-row">
-                <td><strong>စုစုပေါင်း</strong></td>
-                ${customDays.map(d=>{
-                    let h = TYPES.reduce((a,t)=>a+(byType[t].dailyHours[d]||0), 0);
-                    return `<td style="text-align:center;font-weight:bold;font-size:10px">${h>0?h.toFixed(1)+'h':'—'}</td>`;
-                }).join('')}
-                <td style="text-align:center"><strong>${totalP}</strong></td>
-                <td style="text-align:center"><strong>${totalH.toFixed(1)}h</strong></td>
-            </tr>`;
-
+            html += `<tr class="total-row"><td><strong>စုစုပေါင်း</strong></td>${customDays.map(d=>{let h=TYPES.reduce((a,t)=>a+(byType[t].dailyHours[d]||0),0); return `<td style="text-align:center;font-weight:bold">${h>0?h.toFixed(1)+'h':'—'}</td>`;}).join('')}<td style="text-align:center"><strong>${totalP}</strong></td><td style="text-align:center"><strong>${totalH.toFixed(1)}h</strong></td></tr>`;
             html += `</tbody></table></div></div></div>`;
         }
-
-        if(Object.keys(teacherStats).length === 0) html += `<p style="color:#999;padding:10px">Schedule data မရှိသေးပါ</p>`;
-        html += `</div></div>`;
-
-        // ===== CLASS STATS =====
-        html += `<div class="stat-card"><div class="stat-header">🏫 Class Statistics (သင်ချိန်သာ)</div><div class="stat-body"><table class="dashboard-table"><thead><tr><th>အတန်း</th><th>ဘာသာရပ် / ဆရာ</th><th>Periods</th><th>နာရီ</th></tr></thead><tbody>`;
+        html += `</div></div><div class="stat-card"><div class="stat-header">🏫 Class Statistics</div><div class="stat-body"><table class="dashboard-table"><thead><th>အတန်း</th><th>ဘာသာရပ် / ဆရာ</th><th>Periods</th><th>နာရီ</th></thead><tbody>`;
         for(let [cid, data] of Object.entries(classStats)) {
             let cName = getClassName(parseInt(cid));
-            let totalP=0, totalH=0;
-            for(let [sName, sd] of Object.entries(data.subjects)) {
-                html += `<tr><td style="font-size:10px;color:#555">${cName}</td><td>📖 ${sName}</td><td>${sd.periods}</td><td>${sd.hours.toFixed(1)}</td></tr>`;
-                totalP+=sd.periods; totalH+=sd.hours;
-            }
-            for(let [tName, td] of Object.entries(data.teacherDetails)) {
-                html += `<tr style="background:#f3f3f3"><td style="font-size:10px;color:#555">${cName}</td><td>👨‍🏫 ${tName}</td><td>${td.periods}</td><td>${td.hours.toFixed(1)}</td></tr>`;
-            }
+            for(let [sName, sd] of Object.entries(data.subjects)) html += `<tr><td>${cName}</td><td>📖 ${sName}</td><td>${sd.periods}</td><td>${sd.hours.toFixed(1)}</td></tr>`;
+            for(let [tName, td] of Object.entries(data.teacherDetails)) html += `<tr style="background:#f3f3f3"><td>${cName}</td><td>👨‍🏫 ${tName}</td><td>${td.periods}</td><td>${td.hours.toFixed(1)}</td></tr>`;
+            let totalP = data.periods, totalH = data.hours;
             html += `<tr class="total-row"><td colspan="2"><strong>${cName} — Total</strong></td><td><strong>${totalP}</strong></td><td><strong>${totalH.toFixed(1)}</strong></td></tr>`;
         }
         html += `</tbody></table></div></div>`;
-
         document.getElementById('dashboard-stats').innerHTML = html;
-        
-        // Invalid data - show orphan schedules
         let invalid = [];
         schedules.forEach((s,idx)=>{
-            if(!teachers.some(t=>t.id==s.teacher)) invalid.push({type:'Teacher (orphan)', name:s.teacher, index:idx});
-            if(!classes.some(c=>c.id==s.classId)) invalid.push({type:'Class (orphan)', name:s.classId, index:idx});
-            if(!subjects.some(sub=>sub.id==s.subject)) invalid.push({type:'Subject (orphan)', name:s.subject, index:idx});
+            if(!teachers.some(t=>t.id==s.teacher)) invalid.push({type:'Teacher', name:s.teacher, index:idx});
+            if(!classes.some(c=>c.id==s.classId)) invalid.push({type:'Class', name:s.classId, index:idx});
+            if(!subjects.some(sub=>sub.id==s.subject)) invalid.push({type:'Subject', name:s.subject, index:idx});
+            if(!customDays.includes(s.day)) invalid.push({type:'Day', name:s.day, index:idx});
+            let periods = getPeriodsForClass(s.classId);
+            if(!periods.some(p=>p.name===s.periodName)) invalid.push({type:'Period', name:s.periodName, index:idx});
         });
-        let invalidHtml = '';
-        if(invalid.length > 0) {
-            invalidHtml = invalid.map(iv=>`<div class="item"><div>⚠️ Invalid ${iv.type} ID: ${iv.name}</div><button class="delete-btn" onclick="deleteInvalidSchedule(${iv.index})">Delete Schedule</button></div>`).join('');
-        } else {
-            invalidHtml = '<div>No invalid data found</div>';
-        }
-        document.getElementById('invalid-data-list').innerHTML = invalidHtml;
+        document.getElementById('invalid-data-list').innerHTML = invalid.length ? invalid.map(iv=>`<div class="item"><div>⚠️ Invalid ${iv.type}: ${iv.name}</div><button class="delete-btn" onclick="deleteInvalidSchedule(${iv.index})">Delete</button></div>`).join('') : '<div>No invalid data</div>';
     }
+    function deleteInvalidSchedule(idx) { if(confirm("Delete?")) { schedules.splice(idx,1); saveToLocal(); saveToFirestore(); updateAll(); showToast("Deleted"); } }
     
-    function deleteInvalidSchedule(idx) { if(confirm("Delete this orphan schedule?")) { schedules.splice(idx,1); saveToLocal(); saveToFirestore(); updateAll(); showToast("Deleted"); } }
-    
-    // School Info
-    function saveSchoolInfo() { schoolInfo.name = document.getElementById('school-name').value; schoolInfo.year = document.getElementById('academic-year').value; schoolInfo.phone = document.getElementById('school-phone').value; saveToLocal(); saveToFirestore(); updateTimetableHeader(); showToast("School info saved ✅"); }
+    // Timetable
     function updateTimetableHeader() {
         let selectedId = document.getElementById('view-select')?.value;
         let selectedName = "";
         if(selectedId) { if(currentView === 'teacher') selectedName = getTeacherName(parseInt(selectedId)); else selectedName = getClassName(parseInt(selectedId)); }
         let today = new Date(); let formattedDate = `${today.getDate()}/${today.getMonth()+1}/${today.getFullYear()}`;
         let logoHtml = schoolInfo.logo ? `<div class="logo-container"><img src="${schoolInfo.logo}" alt="Logo"></div>` : '';
-        let headerHtml = `<div class="timetable-header">${logoHtml}<div class="school-info"><div class="academic-year">${schoolInfo.year} Academic Year</div><div class="school-name">${schoolInfo.name}</div><div class="title">TIMETABLE</div></div></div><div class="timetable-info"><div class="class-name">${currentView === 'teacher' ? 'Teacher: ' : 'Class: '} ${selectedName || 'Select a class/teacher'}</div><div class="date">Date: ${formattedDate}</div></div>`;
-        let footerHtml = `<div class="timetable-footer">Phone: ${schoolInfo.phone}</div>`;
+        let headerHtml = `<div class="timetable-header">${logoHtml}<div><div class="academic-year">${schoolInfo.year}</div><div class="school-name">${schoolInfo.name}</div><div class="title">TIMETABLE</div></div></div><div class="timetable-info"><div>${currentView === 'teacher' ? 'Teacher: ' : 'Class: '} ${selectedName || 'Select'}</div><div>Date: ${formattedDate}</div></div>`;
         document.getElementById('timetable-header-container').innerHTML = headerHtml;
-        document.getElementById('timetable-footer-container').innerHTML = footerHtml;
-        if(currentView === 'teacher' && selectedId) {
-            let classesStr = getTeacherClassString(parseInt(selectedId));
-            document.getElementById('teacher-class-info').innerHTML = classesStr ? `🏫 Teaches: ${classesStr}` : '';
-        } else { document.getElementById('teacher-class-info').innerHTML = ''; }
+        document.getElementById('timetable-footer-container').innerHTML = `<div class="timetable-footer">Phone: ${schoolInfo.phone}</div>`;
+        if(currentView === 'teacher' && selectedId) document.getElementById('teacher-class-info').innerHTML = `🏫 Teaches: ${getTeacherClassString(parseInt(selectedId))}`;
+        else document.getElementById('teacher-class-info').innerHTML = '';
+    }
+    function onViewSelectChange() { renderTimetable(); }
+    function renderTimetable() {
+        let sid = document.getElementById('view-select').value;
+        if(!sid) { document.getElementById('timetable-container').innerHTML = '<p style="padding:20px;color:#999">Select a teacher or class</p>'; return; }
+        let filtered = currentView === 'teacher' ? schedules.filter(s=>s.teacher==sid) : schedules.filter(s=>s.classId==sid);
+        let periodsToUse = [];
+        if(currentView === 'teacher') {
+            let classIdForTeacher = document.getElementById('teacher-class-choice').value;
+            if(classIdForTeacher) periodsToUse = getPeriodsForClass(parseInt(classIdForTeacher));
+            else periodsToUse = globalPeriods;
+        } else {
+            periodsToUse = getPeriodsForClass(parseInt(sid));
+        }
+        let dayNames = { Monday:'MON', Tuesday:'TUE', Wednesday:'WED', Thursday:'THU', Friday:'FRI', Saturday:'SAT', Sunday:'SUN' };
+        let TYPE_LABEL = { class:'', duty:'🔔 Duty', break:'☕ Break', lunch:'🍽️ Lunch' };
+        let html = '<table class="timetable"><thead><tr><th>Period</th>';
+        customDays.forEach(d=>{ let cls = d==='Saturday'?'saturday': d==='Sunday'?'sunday':''; html += `<th class="${cls}">${dayNames[d]||d.substring(0,3)}</th>`; });
+        html += '</tr></thead><tbody>';
+        periodsToUse.forEach(p=>{
+            let isBreak=p.type==='break', isLunch=p.type==='lunch';
+            let rowBg = isBreak ? '#fff8e1' : isLunch ? '#fce4ec' : '';
+            html += `<tr style="background:${rowBg}"><td class="time-cell"><strong>${p.name}</strong><br><small>${p.start}-${p.end}</small></td>`;
+            customDays.forEach(day=>{
+                let isSat=day==='Saturday', isSun=day==='Sunday';
+                let cellBg = isSat ? '#fff3e0' : isSun ? '#fce4ec' : rowBg;
+                let ds = filtered.filter(s=>s.day===day && s.periodName===p.name);
+                html += `<td style="background:${cellBg}">`;
+                ds.forEach(s=>{
+                    let cardCls = 'schedule-card';
+                    if(s.type==='break') cardCls += ' break'; else if(s.type==='lunch') cardCls += ' lunch'; else if(s.type==='duty') cardCls += ' duty';
+                    let portionText = s.portion ? ` (${s.portion})` : '';
+                    let typeTag = s.type !== 'class' ? `<span style="font-size:9px;font-weight:bold">${TYPE_LABEL[s.type]||s.type}</span><br>` : '';
+                    let secondLine = currentView==='teacher' ? `<small>🏫 ${getClassName(s.classId)}</small>` : `<small>👨‍🏫 ${getTeacherName(s.teacher)}</small>`;
+                    let portionColor = s.portion ? getPortionColor(s.subject, s.portion) : getSubjectColor(s.subject);
+                    html += `<div class="${cardCls}" style="background:${portionColor}20;border-left-color:${getTeacherColor(s.teacher)}" ondblclick="openEditModal(${JSON.stringify(s).replace(/"/g,'&quot;')},${schedules.findIndex(x=>x===s)})">
+                        ${typeTag}<strong>${getSubjectName(s.subject)}${portionText}</strong>${secondLine}
+                    </div>`;
+                });
+                if(ds.length===0 && currentView==='class') html += `<div class="add-btn" onclick="openAddModal('${day}','${p.name}',${parseInt(sid)})">+</div>`;
+                html += '</td>';
+            });
+            html += '</tr>';
+        });
+        html += '</tbody></table>';
+        document.getElementById('timetable-container').innerHTML = html;
+        updateTimetableHeader();
+    }
+    function changeViewType(v) { 
+        currentView = v; 
+        let sel = document.getElementById('view-select'), lbl = document.getElementById('select-label');
+        let teacherClassDiv = document.getElementById('teacher-class-selector');
+        if(v==='teacher') { 
+            lbl.textContent = 'Select Teacher'; 
+            sel.innerHTML = '<option>-- Select --</option>' + teachers.map(t=>`<option value="${t.id}">${t.name}</option>`).join('');
+            teacherClassDiv.style.display = 'block';
+            let classSelect = document.getElementById('teacher-class-choice');
+            classSelect.innerHTML = '<option value="">-- Use Global Periods --</option>' + classes.map(c=>`<option value="${c.id}">${c.name}-${c.section}</option>`).join('');
+            document.getElementById('printNoTeacherBtn').style.display = 'none';
+            document.getElementById('printNoTeacherVertBtn').style.display = 'none';
+        } else { 
+            lbl.textContent = 'Select Class'; 
+            sel.innerHTML = '<option>-- Select --</option>' + classes.map(c=>`<option value="${c.id}">${c.name}-${c.section}</option>`).join('');
+            teacherClassDiv.style.display = 'none';
+            document.getElementById('printNoTeacherBtn').style.display = 'inline-block';
+            document.getElementById('printNoTeacherVertBtn').style.display = 'inline-block';
+        }
+        renderTimetable();
+    }
+    function printTimetable(withoutTeacherNames, layout) {
+        let sid = document.getElementById('view-select').value;
+        if(!sid) { showToast("Select teacher/class first", true); return; }
+        let headerHtml = document.getElementById('timetable-header-container').innerHTML;
+        let footerHtml = document.getElementById('timetable-footer-container').innerHTML;
+        let filtered = currentView==='teacher' ? schedules.filter(s=>s.teacher==sid) : schedules.filter(s=>s.classId==sid);
+        let periodsToUse = [];
+        if(currentView==='teacher') {
+            let classIdForTeacher = document.getElementById('teacher-class-choice').value;
+            periodsToUse = classIdForTeacher ? getPeriodsForClass(parseInt(classIdForTeacher)) : globalPeriods;
+        } else {
+            periodsToUse = getPeriodsForClass(parseInt(sid));
+        }
+        let dayNames = { Monday:'MON', Tuesday:'TUE', Wednesday:'WED', Thursday:'THU', Friday:'FRI', Saturday:'SAT', Sunday:'SUN' };
+        let TYPE_LABEL = { duty:'🔔 Duty', break:'☕ Break', lunch:'🍽️ Lunch' };
+        let isLandscape = layout !== 'vertical';
+        function buildCell(day, p) {
+            let ds = filtered.filter(s=>s.day===day && s.periodName===p.name);
+            let out = '';
+            ds.forEach(s=>{
+                let typeTag = s.type!=='class' ? `<span class="type-tag">${TYPE_LABEL[s.type]||s.type}</span>` : '';
+                let portionText = s.portion?` (${s.portion})`:'';
+                let secondLine = withoutTeacherNames ? '' : (currentView==='teacher' ? `<div class="sc-sub">🏫 ${getClassName(s.classId)}</div>` : `<div class="sc-sub">👨‍🏫 ${getTeacherName(s.teacher)}</div>`);
+                let portionColor = s.portion ? getPortionColor(s.subject, s.portion) : getSubjectColor(s.subject);
+                out += `<div class="sc" style="border-left:3px solid ${getTeacherColor(s.teacher)};background:${portionColor}18">${typeTag}<strong>${getSubjectName(s.subject)}${portionText}</strong>${secondLine}</div>`;
+            });
+            return out;
+        }
+        let tableHtml = '';
+        if(isLandscape) {
+            tableHtml = '<table><thead><tr><th class="period-col">Period</th>';
+            customDays.forEach(d=>{ let bg = d==='Saturday'?'#ff9800': d==='Sunday'?'#e91e63':'#667eea'; tableHtml += `<th style="background:${bg}">${dayNames[d]||d.substring(0,3)}</th>`; });
+            tableHtml += '</tr></thead><tbody>';
+            periodsToUse.forEach(p=>{
+                let isBreak=p.type==='break', isLunch=p.type==='lunch';
+                let rowBg = isBreak?'#fff8e1': isLunch?'#fce4ec':'';
+                tableHtml += `<tr style="background:${rowBg}"><td class="time-cell"><strong>${p.name}</strong><br><span class="time-small">${p.start}-${p.end}</span></td>`;
+                customDays.forEach(day=>{ let isSat=day==='Saturday', isSun=day==='Sunday'; let cellBg = isSat?'#fff3e0': isSun?'#fce4ec': rowBg; tableHtml += `<td style="background:${cellBg}">${buildCell(day,p)}</td>`; });
+                tableHtml += '</tr>';
+            });
+            tableHtml += '</tbody></table>';
+        } else {
+            tableHtml = '<table><thead><tr><th class="period-col">Day</th>';
+            periodsToUse.forEach(p=>{ let bg = p.type==='break'?'#ff9800': p.type==='lunch'?'#e91e63':'#667eea'; tableHtml += `<th style="background:${bg}"><strong>${p.name}</strong><br><span style="font-size:7px">${p.start}-${p.end}</span></th>`; });
+            tableHtml += '</tr></thead><tbody>';
+            customDays.forEach(day=>{
+                let isSat=day==='Saturday', isSun=day==='Sunday';
+                let rowBg = isSat?'#fff3e0': isSun?'#fce4ec':'';
+                tableHtml += `<tr style="background:${rowBg}"><td class="time-cell" style="background:${isSat?'#ffe0b2':isSun?'#f8bbd9':'#f0f0f0'}"><strong>${dayNames[day]||day.substring(0,3)}</strong></td>`;
+                periodsToUse.forEach(p=>{ let cellBg = isSat?'#fff3e0': isSun?'#fce4ec': (p.type==='break'?'#fff8e1': p.type==='lunch'?'#fce4ec':''); tableHtml += `<td style="background:${cellBg}">${buildCell(day,p)}</td>`; });
+                tableHtml += '</tr>';
+            });
+            tableHtml += '</tbody></table>';
+        }
+        let pw = window.open('', '_blank');
+        pw.document.write(`<!DOCTYPE html><html><head><title>Timetable</title><style>body{font-family:Segoe UI,sans-serif;font-size:9px;padding:6mm}table{border-collapse:collapse;width:100%}th,td{border:1px solid #999;padding:3px;text-align:center;vertical-align:top}.period-col{width:${isLandscape?'70px':'55px'}}.time-cell{background:#f0f0f0}.sc{padding:2px;border-radius:2px;margin:1px 0;text-align:left;font-size:8px}.sc strong{display:block}.sc-sub{font-size:7px}.type-tag{font-weight:bold;display:block}.timetable-header{text-align:center;margin-bottom:6px;display:flex;justify-content:center;gap:10px}.logo-container img{max-height:50px}.school-name{font-size:14px;font-weight:bold}.title{font-size:11px;font-weight:bold;color:#667eea}.timetable-info{display:flex;justify-content:space-between;margin:4px 0;font-size:9px}.timetable-footer{text-align:center;margin-top:6px;font-size:8px;border-top:1px solid #ddd;padding-top:4px}@page{size:A4 ${isLandscape?'landscape':'portrait'};margin:8mm}@media print{th,td{border:1px solid #888!important}th{-webkit-print-color-adjust:exact}td[style*="background"]{-webkit-print-color-adjust:exact}.sc{-webkit-print-color-adjust:exact}}</style></head><body>${headerHtml}${tableHtml}${footerHtml}<script>window.onload=()=>window.print()<\/script></body></html>`);
+        pw.document.close();
     }
     
     // Teacher CRUD
@@ -716,239 +708,73 @@
     function addAvailableTimeMulti() { let editId = document.getElementById('teacher-name').getAttribute('data-edit-id'); if(!editId) { showToast("Please save teacher first", "warning"); return; } let period = document.getElementById('avail-period').value, type = document.getElementById('avail-type').value, selectedDays = Array.from(document.querySelectorAll('#avail-multi-day input:checked')).map(cb => cb.value); if(selectedDays.length === 0) { showToast("Select at least one day", true); return; } let teacher = teachers.find(t => t.id == parseInt(editId)); if(teacher) { if(!teacher.availableTimes) teacher.availableTimes = []; for(let day of selectedDays) { if(!teacher.availableTimes.find(at => at.day === day && at.period === period)) { teacher.availableTimes.push({ day, period, type }); } } saveToLocal(); saveToFirestore(); updateTeacherAvailableList(parseInt(editId)); showToast("Added"); } }
     function removeAvailableTime(teacherId, idx) { let teacher = teachers.find(t => t.id == teacherId); if(teacher) { teacher.availableTimes.splice(idx,1); saveToLocal(); saveToFirestore(); updateTeacherAvailableList(teacherId); } }
     function updateTeacherAvailableList(teacherId) { let teacher = teachers.find(t => t.id == teacherId); let container = document.getElementById('teacher-available-list'); if(!teacher || !teacher.availableTimes || teacher.availableTimes.length === 0) { container.innerHTML = '<span>No rules set (All times available)</span>'; return; } container.innerHTML = teacher.availableTimes.map((at, idx) => `<div class="avail-time-item"><span>${at.day} - ${at.period} ${at.type === 'available' ? '✅ Available' : '❌ Not Available'}</span><button onclick="removeAvailableTime(${teacherId},${idx})" class="btn-sm" style="background:#dc3545;">X</button></div>`).join(''); }
-    
-    // Schedule
-    function openAddModal(day, periodName, classId) { modalContext = { day, periodName, classId, editIndex: -1 }; document.getElementById('modal-edit-index').value = -1; document.getElementById('modal-delete-btn').style.display = 'none'; document.getElementById('modal-title').textContent = '➕ Add Schedule'; let tsel = document.getElementById('modal-teacher'); tsel.innerHTML = '<option value="">-- Select Teacher --</option>' + teachers.map(t=>`<option value="${t.id}">${t.name}</option>`).join(''); document.getElementById('modal-subject-group').style.display = 'block'; document.getElementById('modal-portion-group').style.display = 'none'; document.getElementById('modal-warning').innerHTML = ''; document.getElementById('schedule-modal').classList.add('active'); updateModalFields(); }
-    function openEditModal(schedule, index) { modalContext = { day: schedule.day, periodName: schedule.periodName, classId: schedule.classId, editIndex: index }; document.getElementById('modal-edit-index').value = index; document.getElementById('modal-delete-btn').style.display = 'block'; document.getElementById('modal-title').textContent = '✏️ Edit Schedule'; let tsel = document.getElementById('modal-teacher'); tsel.innerHTML = '<option value="">-- Select Teacher --</option>' + teachers.map(t=>`<option value="${t.id}">${t.name}</option>`).join(''); tsel.value = schedule.teacher; let subjectSelect = document.getElementById('modal-subject'); subjectSelect.innerHTML = subjects.map(s=>`<option value="${s.id}">${s.name}</option>`).join(''); subjectSelect.value = schedule.subject; document.getElementById('modal-type').value = schedule.type; document.getElementById('schedule-modal').classList.add('active'); updateModalFields(); updatePortionDropdown(); if(schedule.portion) { setTimeout(() => { let portionSelect = document.getElementById('modal-portion'); if(portionSelect) portionSelect.value = schedule.portion; }, 100); } }
-    function updateModalFields() { let teacherId = document.getElementById('modal-teacher').value; let warningDiv = document.getElementById('modal-warning'); if(teacherId && modalContext.day && modalContext.periodName) { let warning = getAvailabilityWarning(parseInt(teacherId), modalContext.day, modalContext.periodName); if(warning) warningDiv.innerHTML = warning; else warningDiv.innerHTML = ''; } if(!teacherId) return; let teacher = teachers.find(t => t.id == parseInt(teacherId)); if(teacher && teacher.subjectIds) { let teacherSubjects = subjects.filter(s => teacher.subjectIds.includes(s.id)); let subjectSelect = document.getElementById('modal-subject'); subjectSelect.innerHTML = teacherSubjects.map(s => `<option value="${s.id}">${s.name}</option>`).join(''); if(teacherSubjects.length === 1) { document.getElementById('modal-subject-group').style.display = 'none'; subjectSelect.value = teacherSubjects[0].id; updatePortionDropdown(); } else { document.getElementById('modal-subject-group').style.display = 'block'; } } }
-    function updatePortionDropdown() { let subjectId = document.getElementById('modal-subject').value; if(!subjectId) return; let subject = subjects.find(s => s.id == parseInt(subjectId)); let portionGroup = document.getElementById('modal-portion-group'); if(subject && subject.portions && subject.portions.length > 0) { portionGroup.style.display = 'block'; let portionSelect = document.getElementById('modal-portion'); portionSelect.innerHTML = subject.portions.map(p => `<option value="${p}">${p}</option>`).join(''); } else { portionGroup.style.display = 'none'; } }
-    function deleteCurrentSchedule() { let index = parseInt(document.getElementById('modal-edit-index').value); if(index >= 0 && index < schedules.length) { if(confirm("Delete this schedule?")) { schedules.splice(index, 1); saveToLocal(); saveToFirestore(); updateAll(); closeModal(); showToast("Schedule deleted"); } } }
-    function saveSchedule() { let teacherId = document.getElementById('modal-teacher').value; if(!teacherId) { showToast("Select teacher", true); return; } let warning = getAvailabilityWarning(parseInt(teacherId), modalContext.day, modalContext.periodName); if(warning && !confirm(warning + "\nContinue anyway?")) return; let teacher = teachers.find(t => t.id == parseInt(teacherId)); let subjectId = document.getElementById('modal-subject').value; if(!subjectId && teacher.subjectIds?.length === 1) subjectId = teacher.subjectIds[0]; if(!subjectId) { showToast("Select subject", true); return; } let portion = null; if(document.getElementById('modal-portion-group').style.display !== 'none') portion = document.getElementById('modal-portion').value; let type = document.getElementById('modal-type').value; let periods = getPeriods(modalContext.classId); let period = periods.find(p=>p.name===modalContext.periodName); if(!period) { showToast("Period error", true); return; } let editIndex = parseInt(document.getElementById('modal-edit-index').value); if(editIndex >= 0 && editIndex < schedules.length) { schedules[editIndex] = { ...schedules[editIndex], teacher: parseInt(teacherId), subject: parseInt(subjectId), portion, type, startTime: period.start, endTime: period.end }; showToast("Schedule updated"); } else { if(schedules.find(s=>s.classId==modalContext.classId && s.day===modalContext.day && s.periodName===modalContext.periodName)) { showToast("❌ This slot already has a schedule!", true); return; } schedules.push({ teacher: parseInt(teacherId), classId: modalContext.classId, subject: parseInt(subjectId), portion, day: modalContext.day, periodName: modalContext.periodName, startTime: period.start, endTime: period.end, type }); showToast("Schedule added"); } saveToLocal(); saveToFirestore(); updateAll(); closeModal(); }
-    function closeModal() { document.getElementById('schedule-modal').classList.remove('active'); }
     function getAvailabilityWarning(teacherId, day, periodName) { let teacher = teachers.find(t => t.id == teacherId); if(!teacher || !teacher.availableTimes) return null; let rule = teacher.availableTimes.find(at => at.day === day && at.period === periodName); if(rule && rule.type === 'not-available') return `⚠️ Teacher is NOT available at this time!`; return null; }
     
-    // Timetable Render
-    function renderTimetable() {
-        let sid = document.getElementById('view-select').value;
-        if(!sid) { document.getElementById('timetable-container').innerHTML = '<p style="padding:20px;color:#999">Select a teacher or class</p>'; return; }
-        let filtered = currentView === 'teacher' ? schedules.filter(s=>s.teacher==sid) : schedules.filter(s=>s.classId==sid);
-        let cid = currentView === 'class' ? parseInt(sid) : (classes[0]?.id);
-        let periods = getPeriods(cid);
-        let dayNames = { Monday:'MON', Tuesday:'TUE', Wednesday:'WED', Thursday:'THU', Friday:'FRI', Saturday:'SAT', Sunday:'SUN' };
-        let TYPE_LABEL = { class:'', duty:'🔔 Duty', break:'☕ Break', lunch:'🍽️ Lunch' };
-
-        let html = '<table class="timetable"><thead><tr><th>Period</th>';
-        customDays.forEach(d=>{
-            let cls = d==='Saturday'?'saturday': d==='Sunday'?'sunday':'';
-            html += `<th class="${cls}">${dayNames[d]||d.substring(0,3)}</th>`;
-        });
-        html += '</tr></thead><tbody>';
-
-        periods.forEach(p=>{
-            // Row-level background for break/lunch periods
-            let isBreak = p.type==='break';
-            let isLunch = p.type==='lunch';
-            let rowBg = isBreak ? 'background:#fff8e1' : isLunch ? 'background:#fce4ec' : '';
-            html += `<tr style="${rowBg}">`;
-            html += `<td class="time-cell"><strong>${p.name}</strong><br><small>${p.start}-${p.end}</small></td>`;
-
-            customDays.forEach(day=>{
-                let isSat = day==='Saturday', isSun = day==='Sunday';
-                let cellBg = isSat ? 'background:#fff3e0' : isSun ? 'background:#fce4ec' : (isBreak?'background:#fff8e1':isLunch?'background:#fce4ec':'');
-                let ds = filtered.filter(s=>s.day===day && s.periodName===p.name);
-                html += `<td style="${cellBg}">`;
-
-                ds.forEach(s=>{
-                    let cardCls = 'schedule-card';
-                    if(s.type==='break') cardCls += ' break';
-                    else if(s.type==='lunch') cardCls += ' lunch';
-                    else if(s.type==='duty') cardCls += ' duty';
-                    let portionText = s.portion ? ` (${s.portion})` : '';
-                    let typeTag = s.type !== 'class' ? `<span style="font-size:9px;font-weight:bold">${TYPE_LABEL[s.type]||s.type}</span><br>` : '';
-                    // Teacher view: show class name. Class view: show teacher name.
-                    let secondLine = currentView==='teacher'
-                        ? `<small>🏫 ${getClassName(s.classId)}</small>`
-                        : `<small>👨‍🏫 ${getTeacherName(s.teacher)}</small>`;
-                    html += `<div class="${cardCls}" style="background:${getSubjectColor(s.subject)}20;border-left-color:${getTeacherColor(s.teacher)}"
-                        ondblclick="openEditModal(${JSON.stringify(s).replace(/"/g,'&quot;')},${schedules.findIndex(x=>x===s)})">
-                        ${typeTag}<strong>${getSubjectName(s.subject)}${portionText}</strong>${secondLine}
-                    </div>`;
-                });
-
-                // (+) button only in class view, only if empty slot
-                if(ds.length===0 && currentView==='class') {
-                    html += `<div class="add-btn" onclick="openAddModal('${day}','${p.name}',${parseInt(sid)})">+</div>`;
-                }
-                html += '</td>';
-            });
-            html += '</tr>';
-        });
-        html += '</tbody></table>';
-        document.getElementById('timetable-container').innerHTML = html;
-        updateTimetableHeader();
-    }
+    // Subjects
+    function addSubject() { let name=document.getElementById('subject-name').value, code=document.getElementById('subject-code').value, color=document.getElementById('subject-color').value, portions = document.getElementById('subject-portions').value.split(',').map(p=>p.trim()).filter(p=>p); if(!name){ showToast("Enter name",true); return; } if(!code) code=name.substring(0,3).toUpperCase(); if(color === '#2196f3') color = randomColor(); subjects.push({id:Date.now(), name, code, color, portions}); saveToLocal(); saveToFirestore(); updateAll(); document.getElementById('subject-name').value=''; document.getElementById('subject-code').value=''; document.getElementById('subject-portions').value=''; document.getElementById('subject-color').value='#2196f3'; }
+    function quickSubject(n){ if(!subjects.find(s=>s.name===n)){ subjects.push({id:Date.now(),name:n,code:n.substring(0,3).toUpperCase(),color:randomColor(),portions:[]}); saveToLocal(); saveToFirestore(); updateAll(); } }
+    function deleteSubject(i){ if(confirm("Delete?")){ subjects.splice(i,1); saveToLocal(); saveToFirestore(); updateAll(); } }
     
-    // Print
-    function printTimetable(withoutTeacherNames, layout) {
-        let sid = document.getElementById('view-select').value;
-        if(!sid) { showToast("Select teacher/class first", true); return; }
-        let headerHtml = document.getElementById('timetable-header-container').innerHTML;
-        let footerHtml  = document.getElementById('timetable-footer-container').innerHTML;
-
-        let filtered = currentView==='teacher' ? schedules.filter(s=>s.teacher==sid) : schedules.filter(s=>s.classId==sid);
-        let cid = currentView==='class' ? parseInt(sid) : (classes[0]?.id);
-        let periods = getPeriods(cid);
-        let dayNames = { Monday:'MON', Tuesday:'TUE', Wednesday:'WED', Thursday:'THU', Friday:'FRI', Saturday:'SAT', Sunday:'SUN' };
-        let TYPE_LABEL = { duty:'🔔 Duty', break:'☕ Break', lunch:'🍽️ Lunch' };
-        let isLandscape = layout !== 'vertical';
-
-        // Build cells helper
-        function buildCell(day, p) {
-            let ds = filtered.filter(s=>s.day===day && s.periodName===p.name);
-            let out = '';
-            ds.forEach(s=>{
-                let typeTag = s.type!=='class' ? `<span class="type-tag">${TYPE_LABEL[s.type]||s.type}</span>` : '';
-                let portionText = s.portion?` (${s.portion})`:'';
-                let secondLine = withoutTeacherNames ? '' :
-                    currentView==='teacher'
-                        ? `<div class="sc-sub">🏫 ${getClassName(s.classId)}</div>`
-                        : `<div class="sc-sub">👨‍🏫 ${getTeacherName(s.teacher)}</div>`;
-                let cardCls = s.type==='break'?'sc break': s.type==='lunch'?'sc lunch': s.type==='duty'?'sc duty':'sc';
-                out += `<div class="${cardCls}" style="border-left:3px solid ${getTeacherColor(s.teacher)};background:${getSubjectColor(s.subject)}18">
-                    ${typeTag}<strong>${getSubjectName(s.subject)}${portionText}</strong>${secondLine}</div>`;
-            });
-            return out;
-        }
-
-        let tableHtml = '';
-        if(isLandscape) {
-            // Layout A: Period rows, Day cols
-            tableHtml = '<table><thead><tr><th class="period-col">Period</th>';
-            customDays.forEach(d=>{
-                let bg = d==='Saturday'?'#ff9800': d==='Sunday'?'#e91e63':'#667eea';
-                tableHtml += `<th style="background:${bg}">${dayNames[d]||d.substring(0,3)}</th>`;
-            });
-            tableHtml += '</tr></thead><tbody>';
-            periods.forEach(p=>{
-                let isBreak=p.type==='break', isLunch=p.type==='lunch';
-                let rowBg = isBreak?'#fff8e1': isLunch?'#fce4ec':'';
-                tableHtml += `<tr style="background:${rowBg}"><td class="time-cell"><strong>${p.name}</strong><br><span class="time-small">${p.start}-${p.end}</span></td>`;
-                customDays.forEach(day=>{
-                    let isSat=day==='Saturday', isSun=day==='Sunday';
-                    let cellBg = isSat?'#fff3e0': isSun?'#fce4ec': rowBg;
-                    tableHtml += `<td style="background:${cellBg}">${buildCell(day,p)}</td>`;
-                });
-                tableHtml += '</tr>';
-            });
-            tableHtml += '</tbody></table>';
-        } else {
-            // Layout B: Day rows, Period cols
-            tableHtml = '<table><thead><tr><th class="period-col">Day</th>';
-            periods.forEach(p=>{
-                let isBreak=p.type==='break', isLunch=p.type==='lunch';
-                let bg = isBreak?'#ff9800': isLunch?'#e91e63':'#667eea';
-                tableHtml += `<th style="background:${bg}"><strong>${p.name}</strong><br><span style="font-size:7px">${p.start}-${p.end}</span></th>`;
-            });
-            tableHtml += '</tr></thead><tbody>';
-            customDays.forEach(day=>{
-                let isSat=day==='Saturday', isSun=day==='Sunday';
-                let rowBg = isSat?'#fff3e0': isSun?'#fce4ec':'';
-                tableHtml += `<tr style="background:${rowBg}"><td class="time-cell" style="background:${isSat?'#ffe0b2':isSun?'#f8bbd9':'#f0f0f0'}"><strong>${dayNames[day]||day.substring(0,3)}</strong></td>`;
-                periods.forEach(p=>{
-                    let isBreak=p.type==='break', isLunch=p.type==='lunch';
-                    let cellBg = isSat?'#fff3e0': isSun?'#fce4ec': isBreak?'#fff8e1': isLunch?'#fce4ec':'';
-                    tableHtml += `<td style="background:${cellBg}">${buildCell(day,p)}</td>`;
-                });
-                tableHtml += '</tr>';
-            });
-            tableHtml += '</tbody></table>';
-        }
-
-        let pw = window.open('', '_blank');
-        pw.document.write(`<!DOCTYPE html><html><head><title>Timetable</title>
-        <style>
-            *{margin:0;padding:0;box-sizing:border-box}
-            body{font-family:'Segoe UI',Arial,sans-serif;font-size:9px;padding:6mm}
-            table{border-collapse:collapse;width:100%;table-layout:fixed}
-            th,td{border:1px solid #999;padding:3px 2px;text-align:center;vertical-align:middle;word-break:break-word}
-            th{color:white;font-size:9px;background:#667eea}
-            .period-col{width:${isLandscape?'70px':'55px'}}
-            .time-cell{background:#f0f0f0;font-size:9px}
-            .time-small{font-size:8px;color:#555}
-            .sc{padding:2px 3px;border-radius:2px;text-align:left;margin:1px 0;font-size:8px}
-            .sc strong{display:block;font-size:8px}
-            .sc-sub{font-size:7px;color:#444}
-            .type-tag{font-size:7px;font-weight:bold;display:block}
-            .sc.break{background:#fff8e1!important}
-            .sc.lunch{background:#fce4ec!important}
-            .sc.duty{background:#e8f5e9!important}
-            .timetable-header{text-align:center;margin-bottom:6px;display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap}
-            .logo-container img{max-height:50px;max-width:80px}
-            .school-name{font-size:14px;font-weight:bold}
-            .academic-year{font-size:9px;color:#666}
-            .title{font-size:11px;font-weight:bold;color:#667eea;border-bottom:2px solid #667eea;display:inline-block;padding-bottom:2px}
-            .timetable-info{display:flex;justify-content:space-between;margin:4px 0;font-size:9px;font-weight:500}
-            .timetable-footer{text-align:center;margin-top:6px;font-size:8px;color:#666;border-top:1px solid #ddd;padding-top:4px}
-            @page{size:A4 ${isLandscape?'landscape':'portrait'};margin:8mm}
-            @media print{
-                body{padding:0}
-                th,td{border:1px solid #888!important}
-                th{-webkit-print-color-adjust:exact;print-color-adjust:exact}
-                td[style*="background"]{-webkit-print-color-adjust:exact;print-color-adjust:exact}
-                .sc.break,.sc.lunch,.sc.duty{-webkit-print-color-adjust:exact;print-color-adjust:exact}
-            }
-        </style></head><body>
-        ${headerHtml}${tableHtml}${footerHtml}
-        <script>window.onload=()=>{window.print()}<\/script>
-        </body></html>`);
-        pw.document.close();
-    }
+    // Global Periods
+    function addGlobalPeriod() { let name = document.getElementById('global-period-name').value.trim(); let start = document.getElementById('global-period-start').value; let end = document.getElementById('global-period-end').value; let type = document.getElementById('global-period-type').value; if(!name || !start || !end) { showToast("Fill all fields", true); return; } globalPeriods.push({ name, start, end, type }); saveToLocal(); saveToFirestore(); updateGlobalPeriodsList(); renderTimetable(); showToast("Global period added"); }
+    function deleteGlobalPeriod(idx) { globalPeriods.splice(idx,1); saveToLocal(); saveToFirestore(); updateGlobalPeriodsList(); renderTimetable(); }
+    function resetGlobalPeriods() { globalPeriods = [ { name:"Period 1", start:"08:00", end:"09:00", type:"class" }, { name:"Period 2", start:"09:00", end:"10:00", type:"class" }, { name:"Period 3", start:"10:00", end:"11:00", type:"class" }, { name:"Break", start:"11:00", end:"11:15", type:"break" }, { name:"Period 4", start:"11:15", end:"12:15", type:"class" }, { name:"Lunch", start:"12:15", end:"13:15", type:"lunch" }, { name:"Period 5", start:"13:15", end:"14:15", type:"class" }, { name:"Period 6", start:"14:15", end:"15:15", type:"class" } ]; saveToLocal(); saveToFirestore(); updateGlobalPeriodsList(); renderTimetable(); showToast("Global periods reset"); }
+    function updateGlobalPeriodsList() { let container = document.getElementById('global-periods-list'); if(!container) return; container.innerHTML = globalPeriods.map((p,idx)=>`<div class="global-period-item"><span><strong>${p.name}</strong> (${p.start}-${p.end}) ${p.type}</span><button onclick="deleteGlobalPeriod(${idx})" class="btn-sm btn-danger">X</button></div>`).join(''); let availPeriod = document.getElementById('avail-period'); if(availPeriod) availPeriod.innerHTML = globalPeriods.map(p=>`<option value="${p.name}">${p.name} (${p.start}-${p.end})</option>`).join(''); }
     
-    function changeViewType(v){ currentView=v; let sel=document.getElementById('view-select'), lbl=document.getElementById('select-label'); if(v==='teacher'){ lbl.textContent='Select Teacher'; sel.innerHTML='<option>-- Select --</option>'+teachers.map(t=>`<option value="${t.id}">${t.name}</option>`).join(''); } else { lbl.textContent='Select Class'; sel.innerHTML='<option>-- Select --</option>'+classes.map(c=>`<option value="${c.id}">${c.name}-${c.section}</option>`).join(''); } renderTimetable(); }
-    
-    // CRUD
+    // Classes & Periods
     function addClass() { let name=document.getElementById('class-name').value, section=document.getElementById('section-name').value; if(!name||!section){ showToast("Enter both",true); return; } classes.push({id:Date.now(), name, section}); saveToLocal(); saveToFirestore(); updateAll(); document.getElementById('class-name').value=''; document.getElementById('section-name').value=''; }
     function quickAdd(n,s){ if(!classes.find(c=>c.name===n&&c.section===s)){ classes.push({id:Date.now(),name:n,section:s}); saveToLocal(); saveToFirestore(); updateAll(); } }
-    function autoCode(){ let n=document.getElementById('subject-name').value; if(n) document.getElementById('subject-code').value=n.substring(0,3).toUpperCase(); }
-    function addSubject() { let name=document.getElementById('subject-name').value, code=document.getElementById('subject-code').value, color=document.getElementById('subject-color').value, portions = document.getElementById('subject-portions').value.split(',').map(p=>p.trim()).filter(p=>p); if(!name){ showToast("Enter name",true); return; } if(!code) code=name.substring(0,3).toUpperCase(); subjects.push({id:Date.now(), name, code, color, portions}); saveToLocal(); saveToFirestore(); updateAll(); document.getElementById('subject-name').value=''; document.getElementById('subject-code').value=''; document.getElementById('subject-portions').value=''; }
-    function quickSubject(n){ if(!subjects.find(s=>s.name===n)){ subjects.push({id:Date.now(),name:n,code:n.substring(0,3).toUpperCase(),color:'#2196f3',portions:[]}); saveToLocal(); saveToFirestore(); updateAll(); } }
-    function deleteTeacher(i){ if(confirm("Delete?")){ teachers.splice(i,1); saveToLocal(); saveToFirestore(); updateAll(); } }
     function deleteClass(i){ if(confirm("Delete?")){ classes.splice(i,1); saveToLocal(); saveToFirestore(); updateAll(); } }
-    function deleteSubject(i){ if(confirm("Delete?")){ subjects.splice(i,1); saveToLocal(); saveToFirestore(); updateAll(); } }
+    function deleteTeacher(i){ if(confirm("Delete?")){ teachers.splice(i,1); saveToLocal(); saveToFirestore(); updateAll(); } }
     function addHoliday(){ let d=document.getElementById('holiday-date').value, n=document.getElementById('holiday-name').value; if(!d||!n){ showToast("Enter both",true); return; } holidays.push({date:d,name:n}); saveToLocal(); saveToFirestore(); updateAll(); document.getElementById('holiday-date').value=''; document.getElementById('holiday-name').value=''; }
     function deleteHoliday(i){ holidays.splice(i,1); saveToLocal(); saveToFirestore(); updateAll(); }
     function addDay(){ let nd=document.getElementById('new-day').value.trim(); if(!nd){ showToast("Enter name",true); return; } if(customDays.includes(nd)){ showToast("Exists",true); return; } customDays.push(nd); saveToLocal(); saveToFirestore(); updateAll(); document.getElementById('new-day').value=''; }
     function deleteDay(i){ if(customDays.length<=1){ showToast("Cannot delete last day",true); return; } let d=customDays[i]; customDays.splice(i,1); schedules=schedules.filter(s=>s.day!==d); saveToLocal(); saveToFirestore(); updateAll(); }
     function resetDays(){ customDays=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']; schedules=schedules.filter(s=>customDays.includes(s.day)); saveToLocal(); saveToFirestore(); updateAll(); }
-    
-    // Periods
-    function loadPeriods(){ let cid=document.getElementById('period-class-select').value; if(!cid) return; let ps=getPeriods(parseInt(cid)); let container=document.getElementById('periods-list'); container.innerHTML=ps.map((p,i)=>`<div style="display:flex; gap:6px; margin:4px 0; align-items:center; flex-wrap:wrap;"><input value="${p.name}" class="p-name-${i}" style="width:90px;"><input type="time" value="${p.start}" class="p-start-${i}" style="width:80px;"><input type="time" value="${p.end}" class="p-end-${i}" style="width:80px;"><select class="p-type-${i}" style="width:70px;"><option ${p.type==='class'?'selected':''}>class</option><option ${p.type==='break'?'selected':''}>break</option><option ${p.type==='lunch'?'selected':''}>lunch</option><option ${p.type==='duty'?'selected':''}>duty</option></select><button onclick="removePeriodRow(${i})" class="btn-sm" style="background:#dc3545;">X</button></div>`).join(''); let cloneSel=document.getElementById('clone-from-class'); cloneSel.innerHTML='<option>-- Source --</option>'+classes.filter(c=>c.id!=cid).map(c=>`<option value="${c.id}">${c.name}-${c.section}</option>`).join(''); }
-    function addPeriodRow(){ let cid=document.getElementById('period-class-select').value; if(!cid){ showToast("Select class",true); return; } if(!classPeriods[cid]) classPeriods[cid]=getPeriods(cid); classPeriods[cid].push({name:"New Period", start:"09:00", end:"10:00", type:"class"}); loadPeriods(); }
+    function loadPeriods(){ let cid=document.getElementById('period-class-select').value; if(!cid) { document.getElementById('periods-list').innerHTML = '<p>Select a class first</p>'; return; } let ps=getPeriodsForClass(parseInt(cid)); let container=document.getElementById('periods-list'); container.innerHTML=ps.map((p,i)=>`<div style="display:flex; gap:6px; margin:4px 0; align-items:center; flex-wrap:wrap;"><input value="${p.name}" class="p-name-${i}" style="width:90px;"><input type="time" value="${p.start}" class="p-start-${i}" style="width:80px;"><input type="time" value="${p.end}" class="p-end-${i}" style="width:80px;"><select class="p-type-${i}" style="width:70px;"><option ${p.type==='class'?'selected':''}>class</option><option ${p.type==='break'?'selected':''}>break</option><option ${p.type==='lunch'?'selected':''}>lunch</option><option ${p.type==='duty'?'selected':''}>duty</option></select><button onclick="removePeriodRow(${i})" class="btn-sm" style="background:#dc3545;">X</button></div>`).join(''); let cloneSel=document.getElementById('clone-from-class'); cloneSel.innerHTML='<option>-- Source --</option>'+classes.filter(c=>c.id!=cid).map(c=>`<option value="${c.id}">${c.name}-${c.section}</option>`).join(''); }
+    function addPeriodRow(){ let cid=document.getElementById('period-class-select').value; if(!cid){ showToast("Select class",true); return; } if(!classPeriods[cid]) classPeriods[cid]=getPeriodsForClass(cid); classPeriods[cid].push({name:"New Period", start:"09:00", end:"10:00", type:"class"}); loadPeriods(); }
     function removePeriodRow(i){ let cid=document.getElementById('period-class-select').value; if(classPeriods[cid]) classPeriods[cid].splice(i,1); loadPeriods(); }
     function savePeriods(){ let cid=document.getElementById('period-class-select').value; if(!cid) return; let ps=[]; document.querySelectorAll('#periods-list > div').forEach((item,i)=>{ ps.push({name:document.querySelector(`.p-name-${i}`).value, start:document.querySelector(`.p-start-${i}`).value, end:document.querySelector(`.p-end-${i}`).value, type:document.querySelector(`.p-type-${i}`).value}); }); classPeriods[cid]=ps; schedules.forEach(s=>{ if(s.classId==cid){ let p=ps.find(p=>p.name===s.periodName); if(p){ s.startTime=p.start; s.endTime=p.end; } } }); saveToLocal(); saveToFirestore(); updateAll(); showToast("Periods saved"); }
-    function clonePeriods(){ let src=document.getElementById('clone-from-class').value, tgt=document.getElementById('period-class-select').value; if(!src||!tgt){ showToast("Select both",true); return; } classPeriods[tgt]=JSON.parse(JSON.stringify(getPeriods(parseInt(src)))); saveToLocal(); saveToFirestore(); loadPeriods(); showToast("Cloned"); }
+    function clonePeriods(){ let src=document.getElementById('clone-from-class').value, tgt=document.getElementById('period-class-select').value; if(!src||!tgt){ showToast("Select both",true); return; } classPeriods[tgt]=JSON.parse(JSON.stringify(getPeriodsForClass(parseInt(src)))); saveToLocal(); saveToFirestore(); loadPeriods(); showToast("Cloned"); }
     
-    // UI Updates
+    // Schedule modal
+    function openAddModal(day, periodName, classId) { modalContext = { day, periodName, classId, editIndex: -1 }; document.getElementById('modal-edit-index').value = -1; document.getElementById('modal-delete-btn').style.display = 'none'; document.getElementById('modal-title').textContent = '➕ Add Schedule'; let tsel = document.getElementById('modal-teacher'); tsel.innerHTML = '<option value="">-- Select Teacher --</option>' + teachers.map(t=>`<option value="${t.id}">${t.name}</option>`).join(''); document.getElementById('modal-subject-group').style.display = 'block'; document.getElementById('modal-portion-group').style.display = 'none'; document.getElementById('modal-warning').innerHTML = ''; document.getElementById('schedule-modal').classList.add('active'); updateModalFields(); }
+    function openEditModal(schedule, index) { modalContext = { day: schedule.day, periodName: schedule.periodName, classId: schedule.classId, editIndex: index }; document.getElementById('modal-edit-index').value = index; document.getElementById('modal-delete-btn').style.display = 'block'; document.getElementById('modal-title').textContent = '✏️ Edit Schedule'; let tsel = document.getElementById('modal-teacher'); tsel.innerHTML = '<option value="">-- Select Teacher --</option>' + teachers.map(t=>`<option value="${t.id}">${t.name}</option>`).join(''); tsel.value = schedule.teacher; let subjectSelect = document.getElementById('modal-subject'); subjectSelect.innerHTML = subjects.map(s=>`<option value="${s.id}">${s.name}</option>`).join(''); subjectSelect.value = schedule.subject; document.getElementById('modal-type').value = schedule.type; document.getElementById('schedule-modal').classList.add('active'); updateModalFields(); updatePortionDropdown(); if(schedule.portion) { setTimeout(() => { let portionSelect = document.getElementById('modal-portion'); if(portionSelect) portionSelect.value = schedule.portion; }, 100); } }
+    function updateModalFields() { let teacherId = document.getElementById('modal-teacher').value; let warningDiv = document.getElementById('modal-warning'); if(teacherId && modalContext.day && modalContext.periodName) { let warning = getAvailabilityWarning(parseInt(teacherId), modalContext.day, modalContext.periodName); if(warning) warningDiv.innerHTML = warning; else warningDiv.innerHTML = ''; } if(!teacherId) return; let teacher = teachers.find(t => t.id == parseInt(teacherId)); if(teacher && teacher.subjectIds) { let teacherSubjects = subjects.filter(s => teacher.subjectIds.includes(s.id)); let subjectSelect = document.getElementById('modal-subject'); subjectSelect.innerHTML = teacherSubjects.map(s => `<option value="${s.id}">${s.name}</option>`).join(''); if(teacherSubjects.length === 1) { document.getElementById('modal-subject-group').style.display = 'none'; subjectSelect.value = teacherSubjects[0].id; updatePortionDropdown(); } else { document.getElementById('modal-subject-group').style.display = 'block'; } } }
+    function updatePortionDropdown() { let subjectId = document.getElementById('modal-subject').value; if(!subjectId) return; let subject = subjects.find(s => s.id == parseInt(subjectId)); let portionGroup = document.getElementById('modal-portion-group'); if(subject && subject.portions && subject.portions.length > 0) { portionGroup.style.display = 'block'; let portionSelect = document.getElementById('modal-portion'); portionSelect.innerHTML = subject.portions.map(p => `<option value="${p}">${p}</option>`).join(''); } else { portionGroup.style.display = 'none'; } }
+    function deleteCurrentSchedule() { let index = parseInt(document.getElementById('modal-edit-index').value); if(index >= 0 && index < schedules.length) { if(confirm("Delete this schedule?")) { schedules.splice(index, 1); saveToLocal(); saveToFirestore(); updateAll(); closeModal(); showToast("Schedule deleted"); } } }
+    function saveSchedule() { let teacherId = document.getElementById('modal-teacher').value; if(!teacherId) { showToast("Select teacher", true); return; } let warning = getAvailabilityWarning(parseInt(teacherId), modalContext.day, modalContext.periodName); if(warning && !confirm(warning + "\nContinue anyway?")) return; let teacher = teachers.find(t => t.id == parseInt(teacherId)); let subjectId = document.getElementById('modal-subject').value; if(!subjectId && teacher.subjectIds?.length === 1) subjectId = teacher.subjectIds[0]; if(!subjectId) { showToast("Select subject", true); return; } let portion = null; if(document.getElementById('modal-portion-group').style.display !== 'none') portion = document.getElementById('modal-portion').value; let type = document.getElementById('modal-type').value; let periods = getPeriodsForClass(modalContext.classId); let period = periods.find(p=>p.name===modalContext.periodName); if(!period) { showToast("Period error", true); return; } let editIndex = parseInt(document.getElementById('modal-edit-index').value); if(editIndex >= 0 && editIndex < schedules.length) { schedules[editIndex] = { ...schedules[editIndex], teacher: parseInt(teacherId), subject: parseInt(subjectId), portion, type, startTime: period.start, endTime: period.end }; showToast("Schedule updated"); } else { if(schedules.find(s=>s.classId==modalContext.classId && s.day===modalContext.day && s.periodName===modalContext.periodName)) { showToast("❌ This slot already has a schedule!", true); return; } schedules.push({ teacher: parseInt(teacherId), classId: modalContext.classId, subject: parseInt(subjectId), portion, day: modalContext.day, periodName: modalContext.periodName, startTime: period.start, endTime: period.end, type }); showToast("Schedule added"); } saveToLocal(); saveToFirestore(); updateAll(); closeModal(); }
+    function closeModal() { document.getElementById('schedule-modal').classList.remove('active'); }
+    
+    // UI Helpers
     function updateLists(){
-        document.getElementById('teachers-list').innerHTML=teachers.map((t,i)=>`<div class="item"><div><strong>${t.name}</strong><br><small>${t.subjectIds?.map(id=>getSubjectName(id)).join(', ')||'None'}</small><div style="width:20px;height:20px;background:${t.color};border-radius:4px;margin-top:3px;"></div></div><div><button class="edit-btn" onclick="editTeacherById(${t.id})">Edit</button><button class="delete-btn" onclick="deleteTeacher(${i})">Delete</button></div></div>`).join('')||'<div>No teachers</div>';
+        document.getElementById('teachers-list').innerHTML=teachers.map((t,i)=>`<div class="item"><div><strong>${t.name}</strong><br><small>${t.subjectIds?.map(id=>getSubjectName(id)).join(', ')||'None'}</small><div style="width:20px;height:20px;background:${t.color};border-radius:4px;"></div></div><div><button class="edit-btn" onclick="editTeacherById(${t.id})">Edit</button><button class="delete-btn" onclick="deleteTeacher(${i})">Delete</button></div></div>`).join('')||'<div>No teachers</div>';
         document.getElementById('classes-list').innerHTML=classes.map((c,i)=>`<div class="item"><div><strong>${c.name}</strong><br><small>${c.section}</small></div><button class="delete-btn" onclick="deleteClass(${i})">Delete</button></div>`).join('')||'<div>No classes</div>';
         document.getElementById('subjects-list').innerHTML=subjects.map((s,i)=>`<div class="item"><div><strong>${s.name}</strong><br><small>${s.code}</small><div style="width:20px;height:20px;background:${s.color};border-radius:4px;"></div>${s.portions?.length?`<br><small>📂 ${s.portions.join(', ')}</small>`:''}</div><button class="delete-btn" onclick="deleteSubject(${i})">Delete</button></div>`).join('')||'<div>No subjects</div>';
         document.getElementById('holidays-list').innerHTML=holidays.map((h,i)=>`<div class="item"><div><strong>🎉 ${h.name}</strong><br><small>${h.date}</small></div><button class="delete-btn" onclick="deleteHoliday(${i})">Delete</button></div>`).join('')||'<div>No holidays</div>';
         document.getElementById('days-list').innerHTML=customDays.map((d,i)=>`<div class="item"><span>📅 ${d}</span><button class="delete-btn" onclick="deleteDay(${i})">Delete</button></div>`).join('');
-        let periodSel=document.getElementById('period-class-select'); periodSel.innerHTML='<option>-- Select --</option>'+classes.map(c=>`<option value="${c.id}">${c.name}-${c.section}</option>`).join('');
-        let subsContainer=document.getElementById('teacher-subjects-list'); subsContainer.innerHTML=subjects.map(s=>`<label><input type="checkbox" value="${s.id}"> 📚 ${s.name}</label>`).join('');
-        let editSelect = document.getElementById('edit-teacher-select'); editSelect.innerHTML = '<option value="">-- Select Teacher to Edit --</option>' + teachers.map(t=>`<option value="${t.id}">${t.name}</option>`).join('');
-        let availPeriod = document.getElementById('avail-period'); let sampleClass = classes[0]?.id; let periods = getPeriods(sampleClass); availPeriod.innerHTML = periods.map(p => `<option value="${p.name}">${p.name} (${p.start}-${p.end})</option>`).join('');
+        let periodSel=document.getElementById('period-class-select'); if(periodSel) periodSel.innerHTML='<option>-- Select --</option>'+classes.map(c=>`<option value="${c.id}">${c.name}-${c.section}</option>`).join('');
+        let subsContainer=document.getElementById('teacher-subjects-list'); if(subsContainer) subsContainer.innerHTML=subjects.map(s=>`<label><input type="checkbox" value="${s.id}"> 📚 ${s.name}</label>`).join('');
+        let editSelect = document.getElementById('edit-teacher-select'); if(editSelect) editSelect.innerHTML = '<option value="">-- Select Teacher to Edit --</option>' + teachers.map(t=>`<option value="${t.id}">${t.name}</option>`).join('');
+        updateGlobalPeriodsList();
     }
     function editTeacherById(id){ let teacher = teachers.find(t=>t.id==id); if(teacher){ document.getElementById('teacher-name').value = teacher.name; document.getElementById('teacher-color').value = teacher.color; document.getElementById('teacher-name').setAttribute('data-edit-id', teacher.id); document.querySelectorAll('#teacher-subjects-list input').forEach(cb => { cb.checked = teacher.subjectIds?.includes(parseInt(cb.value)); }); updateTeacherAvailableList(teacher.id); document.getElementById('edit-teacher-select').value = teacher.id; showToast("Loading teacher for editing"); } }
     function updateAll(){ updateLists(); updateDashboard(); renderTimetable(); updateTimetableHeader(); if(document.getElementById('period-class-select').value) loadPeriods(); }
-    function switchTab(t){ document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active')); document.querySelectorAll('.tab').forEach(btn=>btn.classList.remove('active')); document.getElementById(`${t}-content`).classList.add('active'); event.target.classList.add('active'); if(t==='dashboard') updateDashboard(); if(t==='timetable') renderTimetable(); if(t==='periods' && document.getElementById('period-class-select').value) loadPeriods(); if(t==='teachers') updateLists(); }
-    function exportData(){ let a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify({teachers,classes,subjects,schedules,holidays,classPeriods,customDays,schoolInfo},null,2)])); a.download=`backup_${Date.now()}.json`; a.click(); showToast("Exported"); }
-    function importData(){ document.getElementById('import-file').click(); document.getElementById('import-file').onchange=e=>{ let f=e.target.files[0], r=new FileReader(); r.onload=ev=>{ let d=JSON.parse(ev.target.result); teachers=d.teachers||[]; classes=d.classes||[]; subjects=d.subjects||[]; schedules=d.schedules||[]; holidays=d.holidays||[]; classPeriods=d.classPeriods||{}; customDays=d.customDays||['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']; schoolInfo=d.schoolInfo||{name:"Shining Stars - Ma Thwe Private High School",year:"2026-2027",phone:"09-123456789",logo:null}; updateLogoPreview(); saveToLocal(); saveToFirestore(); updateAll(); showToast("Imported"); }; r.readAsText(f); }; }
-    async function migrateOldData() { let status = document.getElementById('migrate-status'); status.textContent = '🔍 Scanning...'; try { let usersSnap = await db.collection('users').get(); if(usersSnap.empty) { status.textContent = '❌ No old data found'; return; } let merged = { teachers:[], classes:[], subjects:[], schedules:[], holidays:[], classPeriods:{}, customDays:['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'], schoolInfo: schoolInfo }; let count = 0; usersSnap.forEach(doc => { let d = doc.data(); (d.teachers||[]).forEach(t => { if(!merged.teachers.find(x=>x.id==t.id)) merged.teachers.push(t); }); (d.classes||[]).forEach(c => { if(!merged.classes.find(x=>x.id==c.id)) merged.classes.push(c); }); (d.subjects||[]).forEach(s => { if(!merged.subjects.find(x=>x.id==s.id)) merged.subjects.push(s); }); (d.schedules||[]).forEach(s => { merged.schedules.push(s); }); (d.holidays||[]).forEach(h => { if(!merged.holidays.find(x=>x.date==h.date)) merged.holidays.push(h); }); Object.assign(merged.classPeriods, d.classPeriods||{}); if(d.customDays) merged.customDays = d.customDays; if(d.schoolInfo) merged.schoolInfo = d.schoolInfo; count++; }); let seen = new Set(); merged.schedules = merged.schedules.filter(s => { let key = `${s.classId}-${s.day}-${s.periodName}`; if(seen.has(key)) return false; seen.add(key); return true; }); teachers = merged.teachers; classes = merged.classes; subjects = merged.subjects; schedules = merged.schedules; holidays = merged.holidays; classPeriods = merged.classPeriods; customDays = merged.customDays; schoolInfo = merged.schoolInfo; updateLogoPreview(); saveToLocal(); await saveToFirestore(); updateAll(); status.textContent = `✅ ${count} user(s) merged!`; showToast("Migration complete!"); } catch(e) { status.textContent = '❌ Error: ' + e.message; } }
+    function switchTab(t){ document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active')); document.querySelectorAll('.tab').forEach(btn=>btn.classList.remove('active')); document.getElementById(`${t}-content`).classList.add('active'); event.target.classList.add('active'); if(t==='dashboard') updateDashboard(); if(t==='timetable') renderTimetable(); if(t==='periods' && document.getElementById('period-class-select').value) loadPeriods(); if(t==='teachers') updateLists(); if(t==='settings') updateGlobalPeriodsList(); }
+    function exportData(){ let a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify({teachers,classes,subjects,schedules,holidays,classPeriods,customDays,schoolInfo,globalPeriods},null,2)])); a.download=`backup_${Date.now()}.json`; a.click(); showToast("Exported"); }
+    function importData(){ document.getElementById('import-file').click(); document.getElementById('import-file').onchange=e=>{ let f=e.target.files[0], r=new FileReader(); r.onload=ev=>{ let d=JSON.parse(ev.target.result); teachers=d.teachers||[]; classes=d.classes||[]; subjects=d.subjects||[]; schedules=d.schedules||[]; holidays=d.holidays||[]; classPeriods=d.classPeriods||{}; customDays=d.customDays||['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']; schoolInfo=d.schoolInfo||{name:"Shining Stars - Ma Thwe Private High School",year:"2026-2027",phone:"09-123456789",logo:null}; if(d.globalPeriods) globalPeriods=d.globalPeriods; updateLogoPreview(); saveToLocal(); saveToFirestore(); updateAll(); showToast("Imported"); }; r.readAsText(f); }; }
+    function autoCode(){ let n=document.getElementById('subject-name').value; if(n) document.getElementById('subject-code').value=n.substring(0,3).toUpperCase(); }
     
-    window.migrateOldData=migrateOldData; window.switchTab=switchTab; window.addClass=addClass; window.quickAdd=quickAdd; window.addSubject=addSubject; window.quickSubject=quickSubject; window.deleteTeacher=deleteTeacher; window.deleteClass=deleteClass; window.deleteSubject=deleteSubject; window.deleteHoliday=deleteHoliday; window.deleteDay=deleteDay; window.addHoliday=addHoliday; window.addDay=addDay; window.resetDays=resetDays; window.changeViewType=changeViewType; window.renderTimetable=renderTimetable; window.openAddModal=openAddModal; window.openEditModal=openEditModal; window.saveSchedule=saveSchedule; window.closeModal=closeModal; window.updateModalFields=updateModalFields; window.updatePortionDropdown=updatePortionDropdown; window.loadPeriods=loadPeriods; window.addPeriodRow=addPeriodRow; window.removePeriodRow=removePeriodRow; window.savePeriods=savePeriods; window.clonePeriods=clonePeriods; window.exportData=exportData; window.importData=importData; window.forceCloudSync=forceCloudSync; window.autoCode=autoCode; window.addAvailableTimeMulti=addAvailableTimeMulti; window.removeAvailableTime=removeAvailableTime; window.saveTeacher=saveTeacher; window.clearTeacherForm=clearTeacherForm; window.loadTeacherForEdit=loadTeacherForEdit; window.editTeacherById=editTeacherById; window.deleteCurrentSchedule=deleteCurrentSchedule; window.printTimetable=printTimetable; window.saveSchoolInfo=saveSchoolInfo; window.deleteInvalidSchedule=deleteInvalidSchedule; window.uploadLogo=uploadLogo; window.removeLogo=removeLogo;
+    // Firebase auth
+    firebase.auth().onAuthStateChanged(async (user) => {
+        if(user) { currentUser=user; document.getElementById('sync-status').innerHTML='☁️ Cloud Ready (Manual)'; }
+        else { firebase.auth().signInAnonymously().catch(e=>{ document.getElementById('sync-status').innerHTML='⚠️ Offline'; }); }
+    });
     
+    // Initial load
+    loadFromLocal();
+    // Expose globals
+    window.switchTab=switchTab; window.addClass=addClass; window.quickAdd=quickAdd; window.addSubject=addSubject; window.quickSubject=quickSubject; window.deleteTeacher=deleteTeacher; window.deleteClass=deleteClass; window.deleteSubject=deleteSubject; window.deleteHoliday=deleteHoliday; window.deleteDay=deleteDay; window.addHoliday=addHoliday; window.addDay=addDay; window.resetDays=resetDays; window.changeViewType=changeViewType; window.renderTimetable=renderTimetable; window.openAddModal=openAddModal; window.openEditModal=openEditModal; window.saveSchedule=saveSchedule; window.closeModal=closeModal; window.updateModalFields=updateModalFields; window.updatePortionDropdown=updatePortionDropdown; window.loadPeriods=loadPeriods; window.addPeriodRow=addPeriodRow; window.removePeriodRow=removePeriodRow; window.savePeriods=savePeriods; window.clonePeriods=clonePeriods; window.exportData=exportData; window.importData=importData; window.forceCloudSync=forceCloudSync; window.autoCode=autoCode; window.addAvailableTimeMulti=addAvailableTimeMulti; window.removeAvailableTime=removeAvailableTime; window.saveTeacher=saveTeacher; window.clearTeacherForm=clearTeacherForm; window.loadTeacherForEdit=loadTeacherForEdit; window.editTeacherById=editTeacherById; window.deleteCurrentSchedule=deleteCurrentSchedule; window.printTimetable=printTimetable; window.saveSchoolInfo=saveSchoolInfo; window.deleteInvalidSchedule=deleteInvalidSchedule; window.uploadLogo=uploadLogo; window.removeLogo=removeLogo; window.addGlobalPeriod=addGlobalPeriod; window.deleteGlobalPeriod=deleteGlobalPeriod; window.resetGlobalPeriods=resetGlobalPeriods; window.loadFromCloudManual=loadFromCloudManual; window.onViewSelectChange=onViewSelectChange; window.globalSave=globalSave;
     changeViewType('teacher');
 </script>
 </body>
