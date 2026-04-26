@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>SSMT Timetable - Fixed Class View + 20 Global Periods</title>
+    <title>SSMT Timetable - Fixed Dashboard & Teacher Timetable (All Classes)</title>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
@@ -253,7 +253,7 @@
 <body>
 <div class="container">
     <div class="header">
-        <h1>📅 SSMT Timetable - Fixed Class View + 20 Periods</h1>
+        <h1>📅 SSMT Timetable - Fixed Dashboard & Personal Timetable</h1>
         <div><div id="sync-status" class="sync-status">🔄 Connecting...</div></div>
     </div>
     <div class="tabs">
@@ -277,8 +277,8 @@
             <div class="card printable">
                 <div id="timetable-header-container"></div>
                 <div style="display:flex; gap:12px; margin-bottom:12px;">
-                    <label><input type="radio" name="viewType" value="teacher" checked onchange="changeViewType('teacher')"> 👨‍🏫 Teacher Personal (All Classes)</label>
-                    <label><input type="radio" name="viewType" value="class" onchange="changeViewType('class')"> 🏫 By Class (Days as Columns)</label>
+                    <label><input type="radio" name="viewType" value="teacher" checked onchange="changeViewType('teacher')"> 👨‍🏫 Teacher Personal (All Classes Combined)</label>
+                    <label><input type="radio" name="viewType" value="class" onchange="changeViewType('class')"> 🏫 By Class</label>
                 </div>
                 <div class="form-group"><label id="select-label">Select Teacher</label><select id="view-select" onchange="renderTimetable()"></select></div>
                 <div id="teacher-class-info" class="teacher-class-info"></div>
@@ -305,10 +305,10 @@
             <div class="card"><h3>Subjects List</h3><div id="subjects-list"></div></div>
         </div>
         <!-- Class Periods -->
-        <div id="periods-content" class="tab-content"><div class="card"><h3>Class-Specific Periods</h3><div class="grid-2"><select id="period-class-select" onchange="loadPeriods()"></select><select id="clone-from-class"></select></div><button onclick="clonePeriods()">Clone Periods</button><div id="periods-list"></div><button onclick="addPeriodRow()">+ Add Period</button><button onclick="savePeriods()" class="btn-success">Save Periods</button><p class="note" style="font-size:11px;">Note: Teacher Personal Timetable uses GLOBAL PERIODS (Settings tab).</p></div></div>
+        <div id="periods-content" class="tab-content"><div class="card"><h3>Class-Specific Periods</h3><div class="grid-2"><select id="period-class-select" onchange="loadPeriods()"></select><select id="clone-from-class"></select></div><button onclick="clonePeriods()">Clone Periods</button><div id="periods-list"></div><button onclick="addPeriodRow()">+ Add Period</button><button onclick="savePeriods()" class="btn-success">Save Periods</button><p class="note" style="font-size:11px;">Note: Teacher Personal Timetable uses the periods from the teacher's actual schedules (all periods that appear).</p></div></div>
         <!-- Settings -->
         <div id="settings-content" class="tab-content">
-            <div class="card"><h3>🌍 Global Periods (20 periods default)</h3><div id="global-periods-list"></div><div class="grid-2"><input id="global-period-name" placeholder="Name"><input type="time" id="global-period-start" value="08:00"><input type="time" id="global-period-end" value="08:45"><select id="global-period-type"><option>class</option><option>break</option><option>lunch</option><option>duty</option></select></div><button onclick="addGlobalPeriod()">Add Global Period</button><button onclick="resetGlobalPeriods()" class="btn-sm">Reset to 20 Periods</button></div>
+            <div class="card"><h3>🌍 Global Periods (for Availability & default periods)</h3><div id="global-periods-list"></div><div class="grid-2"><input id="global-period-name" placeholder="Name"><input type="time" id="global-period-start" value="08:00"><input type="time" id="global-period-end" value="08:45"><select id="global-period-type"><option>class</option><option>break</option><option>lunch</option><option>duty</option></select></div><button onclick="addGlobalPeriod()">Add Global Period</button><button onclick="resetGlobalPeriods()" class="btn-sm">Reset to 20 Periods</button></div>
             <div class="card"><h3>📅 Custom Days</h3><div id="days-list"></div><div class="grid-2"><input id="new-day"><button onclick="addDay()">Add Day</button></div><button onclick="resetDays()" class="btn-sm">Reset to Mon-Sat</button></div>
             <div class="card"><h3>🎉 Holidays</h3><div class="grid-2"><input type="date" id="holiday-date"><input id="holiday-name" placeholder="Name"></div><button onclick="addHoliday()">Add</button><div id="holidays-list"></div></div>
             <div class="card"><h3>📥 Data Management</h3><button onclick="exportData()">Export</button><button onclick="importData()">Import</button><input type="file" id="import-file" style="display:none;"><button onclick="forceCloudSync()" class="btn-success">☁️ Sync to Cloud</button><button onclick="loadFromCloudManual()" class="btn-warning">📥 Load from Cloud (Manual)</button></div>
@@ -336,10 +336,9 @@
     // Data
     let teachers = [], classes = [], subjects = [], schedules = [], holidays = [], classPeriods = {};
     let customDays = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-    // Generate 20 global periods (each 45 min, starting at 8:00)
     function generateDefaultGlobalPeriods() {
         let periods = [];
-        let start = 8 * 60; // 8:00 in minutes
+        let start = 8 * 60;
         for (let i = 1; i <= 20; i++) {
             let startMin = start + (i-1)*45;
             let endMin = startMin + 45;
@@ -381,6 +380,16 @@
     function getPeriodsForClass(cid){return classPeriods[cid]&&classPeriods[cid].length?classPeriods[cid]:globalPeriods;}
     function getTeacherClassString(tid){let ts=schedules.filter(s=>s.teacher==tid&&s.type==='class');return [...new Set(ts.map(s=>getClassName(s.classId)))].join(', ');}
     
+    // Helper: get the start time for a period name from any class's period definition
+    function getPeriodStartTime(periodName){
+        for(let cid in classPeriods){
+            let p = classPeriods[cid].find(p=>p.name===periodName);
+            if(p) return p.start;
+        }
+        let gp = globalPeriods.find(p=>p.name===periodName);
+        return gp ? gp.start : "00:00";
+    }
+    
     // Storage & Cloud
     function saveToLocal(){localStorage.setItem('tm_data',JSON.stringify({teachers,classes,subjects,schedules,holidays,classPeriods,customDays,schoolInfo,globalPeriods,_updated:Date.now()}));}
     function loadFromLocal(){let d=localStorage.getItem('tm_data');if(d){let p=JSON.parse(d);teachers=p.teachers||[];classes=p.classes||[];subjects=p.subjects||[];schedules=p.schedules||[];holidays=p.holidays||[];classPeriods=p.classPeriods||{};customDays=p.customDays||['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];if(p.schoolInfo)schoolInfo=p.schoolInfo;if(p.globalPeriods)globalPeriods=p.globalPeriods;updateLogoPreview();updateSchoolInfoForm();return true;}return false;}
@@ -397,7 +406,7 @@
     function saveSchoolInfo(){schoolInfo.name=document.getElementById('school-name').value;schoolInfo.year=document.getElementById('academic-year').value;schoolInfo.phone=document.getElementById('school-phone').value;saveToLocal();saveToFirestore();updateTimetableHeader();showToast("School saved");}
     function updateSchoolInfoForm(){let n=document.getElementById('school-name'),y=document.getElementById('academic-year'),p=document.getElementById('school-phone');if(n)n.value=schoolInfo.name;if(y)y.value=schoolInfo.year;if(p)p.value=schoolInfo.phone;}
     
-    // Dashboard (full featured - same as previous working version, abbreviated for brevity but fully functional)
+    // DASHBOARD (Fixed layout: summary table first, then teacher detail cards, then class stats)
     function updateDashboard(){
         let teacherStats = {}, classStats = {};
         let TYPES = ['class','duty','break','lunch'];
@@ -433,10 +442,11 @@
                 classStats[s.classId].teacherDetails[tName].periods++; classStats[s.classId].teacherDetails[tName].hours+=hours;
             }
         });
-        let html='';
+        let html = '';
+        // 1. Summary Table (Teacher vs Class)
         let allClassIds = [...new Set(schedules.filter(s=>s.type==='class').map(s=>s.classId))];
         let allClassNames = allClassIds.map(id=>({id,name:getClassName(id)})).sort((a,b)=>a.name.localeCompare(b.name));
-        html+=`<div class="stat-card"><div class="stat-header">📋 ဆရာ × အတန်း သင်ချိန် (နာရီ)</div><div class="stat-body"><table class="dashboard-table"><thead><th>ဆရာ/မ</th>${allClassNames.map(c=>`<th>${c.name}</th>`).join('')}<th>စုစုပေါင်း</th></thead><tbody>`;
+        html += `<div class="stat-card"><div class="stat-header">📋 ဆရာ × အတန်း သင်ချိန် (နာရီ)</div><div class="stat-body"><table class="dashboard-table"><thead><th>ဆရာ/မ</th>${allClassNames.map(c=>`<th>${c.name}</th>`).join('')}<th>စုစုပေါင်း</th></thead><tbody>`;
         let sortedTeachers = Object.entries(teacherStats).sort((a,b)=>getTeacherName(parseInt(a[0])).localeCompare(getTeacherName(parseInt(b[0]))));
         for(let [tid, byType] of sortedTeachers){
             if(byType.class.periods===0) continue;
@@ -448,9 +458,10 @@
                 grandH+=h;
                 html+=`<td style="text-align:center;${h>0?`background:${tColor}18;font-weight:600;color:${tColor}`:''}">${h>0?h.toFixed(1)+'h':'—'}</td>`;
             }
-            html+=`<td style="text-align:center;font-weight:bold;color:#1565c0">${grandH.toFixed(1)}h</td></tr>`;
+            html+=`<td style="text-align:center;font-weight:bold;color:#1565c0">${grandH.toFixed(1)}h<\/td><\/tr>`;
         }
-        html+=`</tbody></td></div></div>`;
+        html+=`</tbody></td><\/div><\/div>`;
+        // 2. Teacher Detail Cards
         html+=`<div class="stat-card"><div class="stat-header">👨‍🏫 ဆရာ/မ အသေးစိတ် (နေ့စဉ်၊ အမျိုးအစားအလိုက်)</div><div class="stat-body">`;
         for(let [tid, byType] of sortedTeachers){
             let tName=getTeacherName(parseInt(tid)), tColor=getTeacherColor(parseInt(tid));
@@ -459,28 +470,30 @@
             let totalP = TYPES.reduce((a,t)=>a+byType[t].periods,0), totalH = TYPES.reduce((a,t)=>a+byType[t].hours,0);
             html+=`<div style="border:1px solid #e0e0e0;border-radius:8px;margin-bottom:12px"><div onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none';this.querySelector('.arr').textContent=this.nextElementSibling.style.display==='none'?'▶':'▼'" style="background:${tColor}18;border-left:4px solid ${tColor};padding:8px;cursor:pointer;display:flex;justify-content:space-between"><div><span class="arr">▼</span><strong>${tName}</strong><br><span style="font-size:10px">🏫 ${classNames}</span></div><div><span style="background:#1565c0;color:white;padding:2px 7px;border-radius:10px">${totalP} periods</span> <span style="background:#2e7d32;color:white;padding:2px 7px;border-radius:10px">${totalH.toFixed(1)} hrs</span></div></div><div><div style="overflow-x:auto"><table class="dashboard-table"><thead><th>အမျိုးအစား</th>${customDays.map(d=>`<th>${dayShort[d]||d.substring(0,3)}</th>`).join('')}<th>Periods</th><th>နာရီ</th></thead><tbody>`;
             TYPES.forEach(type=>{ let ts=byType[type]; if(ts.periods===0) return;
-                html+=`<tr style="background:${TYPE_BG[type]}"><td style="color:${TYPE_COLOR[type]}">${TYPE_LABEL[type]}</td>${customDays.map(d=>{ let h=ts.dailyHours[d]||0; return `<td style="text-align:center;${h>0?`font-weight:600;color:${TYPE_COLOR[type]}`:''}">${h>0?h.toFixed(1)+'h':'—'}<td>`;}).join('')}<td style="text-align:center">${ts.periods}</td><td style="text-align:center">${ts.hours.toFixed(1)}h</td></tr>`;
+                html+=`<tr style="background:${TYPE_BG[type]}"><td style="color:${TYPE_COLOR[type]}">${TYPE_LABEL[type]}<\/td>${customDays.map(d=>{ let h=ts.dailyHours[d]||0; return `<td style="text-align:center;${h>0?`font-weight:600;color:${TYPE_COLOR[type]}`:''}">${h>0?h.toFixed(1)+'h':'—'}<\/td>`;}).join('')}<td style="text-align:center">${ts.periods}<\/td><td style="text-align:center">${ts.hours.toFixed(1)}h<\/td><\/tr>`;
                 if(type==='class' && sortedClassDetails.length>0){
                     let cdId='cd_'+tid;
-                    html+=`<tr style="background:#eef2ff"><td colspan="${customDays.length+3}" style="padding:3px"><span onclick="document.getElementById('${cdId}').style.display=document.getElementById('${cdId}').style.display==='none'?'':'none';this.textContent=document.getElementById('${cdId}').style.display===''?'▲ ချုံ့':'▼ အတန်းအလိုက်'" style="cursor:pointer;color:#667eea">▼ အတန်းအလိုက်</span></td></tr><tbody id="${cdId}" style="display:none">`;
-                    for(let d of sortedClassDetails) html+=`<tr><td style="padding-left:20px">↳ ${d.className}</td><td colspan="${customDays.length}">${d.subjectName}</td><td style="text-align:center">${d.periods}</td><td style="text-align:center">${d.hours.toFixed(1)}h</td></tr>`;
+                    html+=`<tr style="background:#eef2ff"><td colspan="${customDays.length+3}" style="padding:3px"><span onclick="document.getElementById('${cdId}').style.display=document.getElementById('${cdId}').style.display==='none'?'':'none';this.textContent=document.getElementById('${cdId}').style.display===''?'▲ ချုံ့':'▼ အတန်းအလိုက်'" style="cursor:pointer;color:#667eea">▼ အတန်းအလိုက်</span><\/td><\/tr><tbody id="${cdId}" style="display:none">`;
+                    for(let d of sortedClassDetails) html+=`<td><td style="padding-left:20px">↳ ${d.className}<\/td><td colspan="${customDays.length}">${d.subjectName}<\/td><td style="text-align:center">${d.periods}<\/td><td style="text-align:center">${d.hours.toFixed(1)}h<\/td><\/tr>`;
                     html+=`</tbody>`;
                 }
             });
-            html+=`<tr class="total-row"><td><strong>စုစုပေါင်း</strong></td>${customDays.map(d=>{let h=TYPES.reduce((a,t)=>a+(byType[t].dailyHours[d]||0),0); return `<td style="text-align:center;font-weight:bold">${h>0?h.toFixed(1)+'h':'—'}<td>`;}).join('')}<td style="text-align:center"><strong>${totalP}</strong></td><td style="text-align:center"><strong>${totalH.toFixed(1)}h</strong></td></tr>`;
-            html+=`</tbody></table></div></div></div>`;
+            html+=`<tr class="total-row"><td><strong>စုစုပေါင်း</strong><\/td>${customDays.map(d=>{let h=TYPES.reduce((a,t)=>a+(byType[t].dailyHours[d]||0),0); return `<td style="text-align:center;font-weight:bold">${h>0?h.toFixed(1)+'h':'—'}<\/td>`;}).join('')}<td style="text-align:center"><strong>${totalP}<\/strong><\/td><td style="text-align:center"><strong>${totalH.toFixed(1)}h<\/strong><\/td><\/tr>`;
+            html+=`</tbody></table><\/div><\/div><\/div>`;
         }
         html+=`</div></div>`;
+        // 3. Class Statistics
         html+=`<div class="stat-card"><div class="stat-header">🏫 Class Statistics (သင်ချိန်သာ)</div><div class="stat-body"><table class="dashboard-table"><thead><th>အတန်း</th><th>ဘာသာရပ် / ဆရာ</th><th>Periods</th><th>နာရီ</th></thead><tbody>`;
         for(let [cid, data] of Object.entries(classStats)){
             let cName=getClassName(parseInt(cid));
-            for(let [sName, sd] of Object.entries(data.subjects)) html+=`<td><td>${cName}</td><td>📖 ${sName}</td><td>${sd.periods}</td><td>${sd.hours.toFixed(1)}</td></tr>`;
-            for(let [tName, td] of Object.entries(data.teacherDetails)) html+=`<tr style="background:#f3f3f3"><td>${cName}</td><td>👨‍🏫 ${tName}</td><td>${td.periods}</td><td>${td.hours.toFixed(1)}</td></tr>`;
+            for(let [sName, sd] of Object.entries(data.subjects)) html+=`<tr><td>${cName}<\/td><td>📖 ${sName}<\/td><td>${sd.periods}<\/td><td>${sd.hours.toFixed(1)}<\/td><\/tr>`;
+            for(let [tName, td] of Object.entries(data.teacherDetails)) html+=`<tr style="background:#f3f3f3"><td>${cName}<\/td><td>👨‍🏫 ${tName}<\/td><td>${td.periods}<\/td><td>${td.hours.toFixed(1)}<\/td><\/tr>`;
             let totalP=data.periods, totalH=data.hours;
-            html+=`<tr class="total-row"><td colspan="2"><strong>${cName} — Total</strong></td><td><strong>${totalP}</strong></td><td><strong>${totalH.toFixed(1)}</strong></td></tr>`;
+            html+=`<tr class="total-row"><td colspan="2"><strong>${cName} — Total<\/strong><\/td><td><strong>${totalP}<\/strong><\/td><td><strong>${totalH.toFixed(1)}<\/strong><\/td><\/tr>`;
         }
-        html+=`</tbody></table></div></div>`;
+        html+=`</tbody></table><\/div><\/div>`;
         document.getElementById('dashboard-stats').innerHTML=html;
+        // Invalid data
         let invalid=[];
         schedules.forEach((s,idx)=>{
             if(!teachers.some(t=>t.id==s.teacher)) invalid.push({type:'Teacher',name:s.teacher,idx});
@@ -494,56 +507,84 @@
     }
     function deleteInvalidSchedule(idx){if(confirm("Delete?")){schedules.splice(idx,1);saveToLocal();saveToFirestore();updateAll();showToast("Deleted");}}
     
-    // Timetable render (Teacher Personal + Class View - FIXED)
+    // ========== TIMETABLE RENDER - TEACHER PERSONAL (SHOWS ALL CLASSES, ALL PERIODS) ==========
     function renderTimetable(){
         let sid = document.getElementById('view-select').value;
         if(!sid){ document.getElementById('timetable-container').innerHTML='<p>Select an item</p>'; return; }
         if(currentView === 'teacher'){
-            // Teacher Personal (all classes combined)
             let teacherId = parseInt(sid);
             let teacherScheds = schedules.filter(s => s.teacher === teacherId);
+            if(teacherScheds.length === 0){
+                document.getElementById('timetable-container').innerHTML='<p>No schedules for this teacher</p>';
+                updateTimetableHeader();
+                document.getElementById('teacher-class-info').innerHTML = `🏫 Teaches: ${getTeacherClassString(teacherId)}`;
+                return;
+            }
+            // Group by day and periodName
             let map = {};
-            teacherScheds.forEach(s => { let key = s.day+'|'+s.periodName; if(!map[key]) map[key]=[]; map[key].push(s); });
+            teacherScheds.forEach(s => {
+                let key = s.day + '|' + s.periodName;
+                if(!map[key]) map[key] = [];
+                map[key].push(s);
+            });
+            // Get all unique period names from this teacher's schedules, then sort by start time
+            let periodNamesSet = new Set();
+            teacherScheds.forEach(s => periodNamesSet.add(s.periodName));
+            let periodNames = Array.from(periodNamesSet);
+            // sort period names by start time
+            periodNames.sort((a,b) => {
+                let timeA = getPeriodStartTime(a);
+                let timeB = getPeriodStartTime(b);
+                return timeA.localeCompare(timeB);
+            });
             let dayNames = { Monday:'MON', Tuesday:'TUE', Wednesday:'WED', Thursday:'THU', Friday:'FRI', Saturday:'SAT', Sunday:'SUN' };
             let typeLabel = { class:'', duty:'🔔 Duty', break:'☕ Break', lunch:'🍽️ Lunch' };
             let html = '<table class="timetable"><thead><tr><th>Period</th>';
             customDays.forEach(d=>{ let cls = d==='Saturday'?'saturday':d==='Sunday'?'sunday':''; html+=`<th class="${cls}">${dayNames[d]||d.substring(0,3)}</th>`; });
-            html+='</tr></thead><tbody>';
-            globalPeriods.forEach(p=>{
-                let isBreak = p.type==='break', isLunch = p.type==='lunch';
-                let rowBg = isBreak?'#fff8e1':isLunch?'#fce4ec':'';
-                html+=`<tr style="background:${rowBg}"><td class="time-cell"><strong>${p.name}</strong><br><small>${p.start}-${p.end}</small></td>`;
-                customDays.forEach(day=>{
+            html+='<tr></thead><tbody>';
+            for(let pName of periodNames){
+                // Find a sample schedule to get start/end times (or use period definition from any class)
+                let sampleSched = teacherScheds.find(s=>s.periodName===pName);
+                let startTime = sampleSched.startTime || "??:??";
+                let endTime = sampleSched.endTime || "??:??";
+                // try to get from class period if missing
+                if(!sampleSched.startTime){
+                    let pDef = getPeriodsForClass(sampleSched.classId).find(p=>p.name===pName);
+                    if(pDef){ startTime = pDef.start; endTime = pDef.end; }
+                }
+                let rowBg = (sampleSched.type === 'break' || sampleSched.type === 'lunch') ? (sampleSched.type==='break'?'#fff8e1':'#fce4ec') : '';
+                html+=`<tr style="background:${rowBg}"><td class="time-cell"><strong>${pName}</strong><br><small>${startTime}-${endTime}</small></td>`;
+                for(let day of customDays){
                     let isSat=day==='Saturday', isSun=day==='Sunday';
                     let cellBg = isSat?'#fff3e0':isSun?'#fce4ec':rowBg;
-                    let key = day+'|'+p.name;
+                    let key = day + '|' + pName;
                     let scheds = map[key] || [];
                     html+=`<td style="background:${cellBg}">`;
-                    scheds.forEach(s=>{
+                    for(let s of scheds){
                         let cardCls='schedule-card';
                         if(s.type==='break') cardCls+=' break';
                         else if(s.type==='lunch') cardCls+=' lunch';
                         else if(s.type==='duty') cardCls+=' duty';
-                        let portionText = s.portion?` (${s.portion})`:'';
-                        let typeTag = s.type!=='class'?`<span style="font-size:9px;font-weight:bold">${typeLabel[s.type]||s.type}</span><br>`:'';
+                        let portionText = s.portion ? ` (${s.portion})` : '';
+                        let typeTag = s.type!=='class' ? `<span style="font-size:9px;font-weight:bold">${typeLabel[s.type]||s.type}</span><br>` : '';
                         let className = getClassName(s.classId);
-                        let portionColor = s.portion?getPortionColor(s.subject,s.portion):getSubjectColor(s.subject);
+                        let portionColor = s.portion ? getPortionColor(s.subject, s.portion) : getSubjectColor(s.subject);
                         html+=`<div class="${cardCls}" style="background:${portionColor}20;border-left-color:${getTeacherColor(s.teacher)}" ondblclick="openEditModal(${JSON.stringify(s).replace(/"/g,'&quot;')},${schedules.findIndex(x=>x===s)})">
                             ${typeTag}<strong>${getSubjectName(s.subject)}${portionText}</strong>
                             <small>🏫 ${className}</small>
                         </div>`;
-                    });
-                    html+=`</td>`;
-                });
-                html+=`</tr>`;
-            });
+                    }
+                    html+=`<\/td>`;
+                }
+                html+=`<\/tr>`;
+            }
             html+=`</tbody></table>`;
             document.getElementById('timetable-container').innerHTML = html;
             updateTimetableHeader();
             document.getElementById('teacher-class-info').innerHTML = `🏫 Teaches: ${getTeacherClassString(teacherId)}`;
             return;
         }
-        // Class View (fixed: days as columns, periods as rows)
+        // Class view (unchanged, uses class‑specific periods)
         let classId = parseInt(sid);
         let filtered = schedules.filter(s => s.classId == classId);
         let periodsToUse = getPeriodsForClass(classId);
@@ -551,39 +592,40 @@
         let typeLabel = { class:'', duty:'🔔 Duty', break:'☕ Break', lunch:'🍽️ Lunch' };
         let html = '<table class="timetable"><thead><tr><th>Period</th>';
         customDays.forEach(d=>{ let cls = d==='Saturday'?'saturday':d==='Sunday'?'sunday':''; html+=`<th class="${cls}">${dayNames[d]||d.substring(0,3)}</th>`; });
-        html+='</tr></thead><tbody>';
-        periodsToUse.forEach(p=>{
+        html+='<tr></thead><tbody>';
+        for(let p of periodsToUse){
             let isBreak = p.type==='break', isLunch = p.type==='lunch';
             let rowBg = isBreak?'#fff8e1':isLunch?'#fce4ec':'';
             html+=`<tr style="background:${rowBg}"><td class="time-cell"><strong>${p.name}</strong><br><small>${p.start}-${p.end}</small></td>`;
-            customDays.forEach(day=>{
+            for(let day of customDays){
                 let isSat=day==='Saturday', isSun=day==='Sunday';
                 let cellBg = isSat?'#fff3e0':isSun?'#fce4ec':rowBg;
                 let ds = filtered.filter(s => s.day === day && s.periodName === p.name);
                 html+=`<td style="background:${cellBg}">`;
-                ds.forEach(s=>{
+                for(let s of ds){
                     let cardCls='schedule-card';
                     if(s.type==='break') cardCls+=' break';
                     else if(s.type==='lunch') cardCls+=' lunch';
                     else if(s.type==='duty') cardCls+=' duty';
-                    let portionText = s.portion?` (${s.portion})`:'';
-                    let typeTag = s.type!=='class'?`<span style="font-size:9px;font-weight:bold">${typeLabel[s.type]||s.type}</span><br>`:'';
+                    let portionText = s.portion ? ` (${s.portion})` : '';
+                    let typeTag = s.type!=='class' ? `<span style="font-size:9px;font-weight:bold">${typeLabel[s.type]||s.type}</span><br>` : '';
                     let teacherLine = `<small>👨‍🏫 ${getTeacherName(s.teacher)}</small>`;
-                    let portionColor = s.portion?getPortionColor(s.subject,s.portion):getSubjectColor(s.subject);
+                    let portionColor = s.portion ? getPortionColor(s.subject, s.portion) : getSubjectColor(s.subject);
                     html+=`<div class="${cardCls}" style="background:${portionColor}20;border-left-color:${getTeacherColor(s.teacher)}" ondblclick="openEditModal(${JSON.stringify(s).replace(/"/g,'&quot;')},${schedules.findIndex(x=>x===s)})">
                         ${typeTag}<strong>${getSubjectName(s.subject)}${portionText}</strong>${teacherLine}
                     </div>`;
-                });
+                }
                 if(ds.length === 0) html+=`<div class="add-btn" onclick="openAddModal('${day}','${p.name}',${classId})">+</div>`;
-                html+=`</td>`;
-            });
-            html+=`</tr>`;
-        });
+                html+=`<\/td>`;
+            }
+            html+=`<\/tr>`;
+        }
         html+=`</tbody></table>`;
         document.getElementById('timetable-container').innerHTML = html;
         updateTimetableHeader();
         document.getElementById('teacher-class-info').innerHTML = '';
     }
+    
     function updateTimetableHeader(){
         let sid=document.getElementById('view-select').value;
         let name='';
@@ -691,13 +733,13 @@
         }
     }
     
-    // Global Periods (with 20 default)
+    // Global Periods
     function addGlobalPeriod(){let name=document.getElementById('global-period-name').value.trim(),start=document.getElementById('global-period-start').value,end=document.getElementById('global-period-end').value,type=document.getElementById('global-period-type').value;if(!name||!start||!end){showToast("Fill all",true);return;}globalPeriods.push({name,start,end,type});saveToLocal();saveToFirestore();updateGlobalPeriodsList();renderTimetable();}
     function deleteGlobalPeriod(idx){globalPeriods.splice(idx,1);saveToLocal();saveToFirestore();updateGlobalPeriodsList();renderTimetable();}
     function resetGlobalPeriods(){globalPeriods = generateDefaultGlobalPeriods(); saveToLocal(); saveToFirestore(); updateGlobalPeriodsList(); renderTimetable(); showToast("Reset to 20 global periods");}
     function updateGlobalPeriodsList(){let cont=document.getElementById('global-periods-list');if(cont)cont.innerHTML=globalPeriods.map((p,i)=>`<div class="global-period-item"><span><strong>${p.name}</strong> ${p.start}-${p.end} ${p.type}</span><button onclick="deleteGlobalPeriod(${i})" class="btn-sm btn-danger">X</button></div>`).join('');let avail=document.getElementById('avail-period');if(avail)avail.innerHTML=globalPeriods.map(p=>`<option value="${p.name}">${p.name} (${p.start}-${p.end})</option>`).join('');}
     
-    // Classes & Periods (same)
+    // Classes, Periods, etc.
     function addClass(){let n=document.getElementById('class-name').value,s=document.getElementById('section-name').value;if(!n||!s){showToast("Both required",true);return;}classes.push({id:Date.now(),name:n,section:s});saveToLocal();saveToFirestore();updateAll();document.getElementById('class-name').value='';document.getElementById('section-name').value='';}
     function quickAdd(n,s){if(!classes.find(c=>c.name===n&&c.section===s)){classes.push({id:Date.now(),name:n,section:s});saveToLocal();saveToFirestore();updateAll();}}
     function deleteClass(i){if(confirm("Delete?")){classes.splice(i,1);saveToLocal();saveToFirestore();updateAll();}}
@@ -741,7 +783,7 @@
     function importData(){document.getElementById('import-file').click();document.getElementById('import-file').onchange=e=>{let f=e.target.files[0],r=new FileReader();r.onload=ev=>{let d=JSON.parse(ev.target.result);teachers=d.teachers||[];classes=d.classes||[];subjects=d.subjects||[];schedules=d.schedules||[];holidays=d.holidays||[];classPeriods=d.classPeriods||{};customDays=d.customDays||['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];schoolInfo=d.schoolInfo||{name:"Shining Stars - Ma Thwe Private High School",year:"2026-2027",phone:"09-123456789",logo:null};if(d.globalPeriods)globalPeriods=d.globalPeriods;updateLogoPreview();saveToLocal();saveToFirestore();updateAll();showToast("Imported");};r.readAsText(f);};}
     function autoCode(){let n=document.getElementById('subject-name').value;if(n)document.getElementById('subject-code').value=n.substring(0,3).toUpperCase();}
     
-    // Firebase Auth & Auto Load
+    // Firebase Auth
     firebase.auth().onAuthStateChanged(async (user) => {
         if(user){ 
             currentUser=user; 
