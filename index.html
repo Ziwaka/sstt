@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>SSMT Timetable - Fixed Dashboard & Teacher Timetable (All Classes)</title>
+    <title>SSMT Timetable - With Time Gaps in Personal Timetable</title>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
@@ -86,6 +86,16 @@
         .schedule-card.lunch { background: #fce4ec; border-left-color: #e91e63; }
         .schedule-card.duty { background: #e8f5e9; border-left-color: #4caf50; }
         .schedule-card strong { font-size: 11px; display: block; }
+        .gap-card {
+            margin: 2px 0;
+            padding: 2px 3px;
+            border-radius: 4px;
+            text-align: center;
+            font-size: 9px;
+            font-weight: bold;
+        }
+        .gap-card.small { background: #fff9c4; color: #856404; border-left: 3px solid #ffc107; }
+        .gap-card.large { background: #ffe0b2; color: #bf360c; border-left: 3px solid #e65100; }
         .add-btn {
             display: inline-block;
             background: #4caf50;
@@ -220,6 +230,7 @@
             .schedule-card.lunch { background: #fce4ec !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             .schedule-card.duty { background: #e8f5e9 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             .schedule-card { font-size: 8px !important; padding: 2px !important; margin: 1px 0 !important; }
+            .gap-card { font-size: 7px !important; padding: 1px !important; }
             .timetable-header .school-name { font-size: 14px; }
             .timetable-header .academic-year { font-size: 9px; }
             .timetable-header .title { font-size: 11px; }
@@ -253,7 +264,7 @@
 <body>
 <div class="container">
     <div class="header">
-        <h1>📅 SSMT Timetable - Fixed Dashboard & Personal Timetable</h1>
+        <h1>📅 SSMT Timetable - With Time Gaps</h1>
         <div><div id="sync-status" class="sync-status">🔄 Connecting...</div></div>
     </div>
     <div class="tabs">
@@ -277,7 +288,7 @@
             <div class="card printable">
                 <div id="timetable-header-container"></div>
                 <div style="display:flex; gap:12px; margin-bottom:12px;">
-                    <label><input type="radio" name="viewType" value="teacher" checked onchange="changeViewType('teacher')"> 👨‍🏫 Teacher Personal (All Classes Combined)</label>
+                    <label><input type="radio" name="viewType" value="teacher" checked onchange="changeViewType('teacher')"> 👨‍🏫 Teacher Personal (with time gaps)</label>
                     <label><input type="radio" name="viewType" value="class" onchange="changeViewType('class')"> 🏫 By Class</label>
                 </div>
                 <div class="form-group"><label id="select-label">Select Teacher</label><select id="view-select" onchange="renderTimetable()"></select></div>
@@ -379,15 +390,41 @@
     function getClassName(id){let c=classes.find(x=>x.id==id);return c?`${c.name}-${c.section}`:'Unknown';}
     function getPeriodsForClass(cid){return classPeriods[cid]&&classPeriods[cid].length?classPeriods[cid]:globalPeriods;}
     function getTeacherClassString(tid){let ts=schedules.filter(s=>s.teacher==tid&&s.type==='class');return [...new Set(ts.map(s=>getClassName(s.classId)))].join(', ');}
-    
-    // Helper: get the start time for a period name from any class's period definition
-    function getPeriodStartTime(periodName){
+    function getPeriodStartTime(periodName, classId=null){
+        if(classId){
+            let ps = getPeriodsForClass(classId);
+            let p = ps.find(p=>p.name===periodName);
+            if(p) return p.start;
+        }
+        // search any class
         for(let cid in classPeriods){
             let p = classPeriods[cid].find(p=>p.name===periodName);
             if(p) return p.start;
         }
         let gp = globalPeriods.find(p=>p.name===periodName);
         return gp ? gp.start : "00:00";
+    }
+    function getPeriodEndTime(periodName, classId=null){
+        if(classId){
+            let ps = getPeriodsForClass(classId);
+            let p = ps.find(p=>p.name===periodName);
+            if(p) return p.end;
+        }
+        for(let cid in classPeriods){
+            let p = classPeriods[cid].find(p=>p.name===periodName);
+            if(p) return p.end;
+        }
+        let gp = globalPeriods.find(p=>p.name===periodName);
+        return gp ? gp.end : "00:00";
+    }
+    function timeToMinutes(t){
+        let [h,m] = t.split(':').map(Number);
+        return h*60 + m;
+    }
+    function minutesToTime(min){
+        let h = Math.floor(min/60);
+        let m = min % 60;
+        return `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}`;
     }
     
     // Storage & Cloud
@@ -406,7 +443,7 @@
     function saveSchoolInfo(){schoolInfo.name=document.getElementById('school-name').value;schoolInfo.year=document.getElementById('academic-year').value;schoolInfo.phone=document.getElementById('school-phone').value;saveToLocal();saveToFirestore();updateTimetableHeader();showToast("School saved");}
     function updateSchoolInfoForm(){let n=document.getElementById('school-name'),y=document.getElementById('academic-year'),p=document.getElementById('school-phone');if(n)n.value=schoolInfo.name;if(y)y.value=schoolInfo.year;if(p)p.value=schoolInfo.phone;}
     
-    // DASHBOARD (Fixed layout: summary table first, then teacher detail cards, then class stats)
+    // DASHBOARD (same as before, works)
     function updateDashboard(){
         let teacherStats = {}, classStats = {};
         let TYPES = ['class','duty','break','lunch'];
@@ -443,7 +480,7 @@
             }
         });
         let html = '';
-        // 1. Summary Table (Teacher vs Class)
+        // Summary Table
         let allClassIds = [...new Set(schedules.filter(s=>s.type==='class').map(s=>s.classId))];
         let allClassNames = allClassIds.map(id=>({id,name:getClassName(id)})).sort((a,b)=>a.name.localeCompare(b.name));
         html += `<div class="stat-card"><div class="stat-header">📋 ဆရာ × အတန်း သင်ချိန် (နာရီ)</div><div class="stat-body"><table class="dashboard-table"><thead><th>ဆရာ/မ</th>${allClassNames.map(c=>`<th>${c.name}</th>`).join('')}<th>စုစုပေါင်း</th></thead><tbody>`;
@@ -460,8 +497,8 @@
             }
             html+=`<td style="text-align:center;font-weight:bold;color:#1565c0">${grandH.toFixed(1)}h<\/td><\/tr>`;
         }
-        html+=`</tbody></td><\/div><\/div>`;
-        // 2. Teacher Detail Cards
+        html+=`</tbody></table><\/div><\/div>`;
+        // Teacher Detail Cards
         html+=`<div class="stat-card"><div class="stat-header">👨‍🏫 ဆရာ/မ အသေးစိတ် (နေ့စဉ်၊ အမျိုးအစားအလိုက်)</div><div class="stat-body">`;
         for(let [tid, byType] of sortedTeachers){
             let tName=getTeacherName(parseInt(tid)), tColor=getTeacherColor(parseInt(tid));
@@ -474,7 +511,7 @@
                 if(type==='class' && sortedClassDetails.length>0){
                     let cdId='cd_'+tid;
                     html+=`<tr style="background:#eef2ff"><td colspan="${customDays.length+3}" style="padding:3px"><span onclick="document.getElementById('${cdId}').style.display=document.getElementById('${cdId}').style.display==='none'?'':'none';this.textContent=document.getElementById('${cdId}').style.display===''?'▲ ချုံ့':'▼ အတန်းအလိုက်'" style="cursor:pointer;color:#667eea">▼ အတန်းအလိုက်</span><\/td><\/tr><tbody id="${cdId}" style="display:none">`;
-                    for(let d of sortedClassDetails) html+=`<td><td style="padding-left:20px">↳ ${d.className}<\/td><td colspan="${customDays.length}">${d.subjectName}<\/td><td style="text-align:center">${d.periods}<\/td><td style="text-align:center">${d.hours.toFixed(1)}h<\/td><\/tr>`;
+                    for(let d of sortedClassDetails) html+=`<tr><td style="padding-left:20px">↳ ${d.className}<\/td><td colspan="${customDays.length}">${d.subjectName}<\/td><td style="text-align:center">${d.periods}<\/td><td style="text-align:center">${d.hours.toFixed(1)}h<\/td><\/tr>`;
                     html+=`</tbody>`;
                 }
             });
@@ -482,7 +519,7 @@
             html+=`</tbody></table><\/div><\/div><\/div>`;
         }
         html+=`</div></div>`;
-        // 3. Class Statistics
+        // Class Statistics
         html+=`<div class="stat-card"><div class="stat-header">🏫 Class Statistics (သင်ချိန်သာ)</div><div class="stat-body"><table class="dashboard-table"><thead><th>အတန်း</th><th>ဘာသာရပ် / ဆရာ</th><th>Periods</th><th>နာရီ</th></thead><tbody>`;
         for(let [cid, data] of Object.entries(classStats)){
             let cName=getClassName(parseInt(cid));
@@ -507,7 +544,7 @@
     }
     function deleteInvalidSchedule(idx){if(confirm("Delete?")){schedules.splice(idx,1);saveToLocal();saveToFirestore();updateAll();showToast("Deleted");}}
     
-    // ========== TIMETABLE RENDER - TEACHER PERSONAL (SHOWS ALL CLASSES, ALL PERIODS) ==========
+    // ========== TEACHER PERSONAL TIMETABLE WITH TIME GAPS ==========
     function renderTimetable(){
         let sid = document.getElementById('view-select').value;
         if(!sid){ document.getElementById('timetable-container').innerHTML='<p>Select an item</p>'; return; }
@@ -520,63 +557,124 @@
                 document.getElementById('teacher-class-info').innerHTML = `🏫 Teaches: ${getTeacherClassString(teacherId)}`;
                 return;
             }
-            // Group by day and periodName
-            let map = {};
+            // Group schedules by day
+            let schedulesByDay = {};
+            customDays.forEach(day => schedulesByDay[day] = []);
             teacherScheds.forEach(s => {
-                let key = s.day + '|' + s.periodName;
-                if(!map[key]) map[key] = [];
-                map[key].push(s);
+                if(schedulesByDay[s.day]) schedulesByDay[s.day].push(s);
             });
-            // Get all unique period names from this teacher's schedules, then sort by start time
-            let periodNamesSet = new Set();
-            teacherScheds.forEach(s => periodNamesSet.add(s.periodName));
-            let periodNames = Array.from(periodNamesSet);
-            // sort period names by start time
-            periodNames.sort((a,b) => {
-                let timeA = getPeriodStartTime(a);
-                let timeB = getPeriodStartTime(b);
-                return timeA.localeCompare(timeB);
-            });
+            // For each day, sort by start time and build time blocks (occupied + gaps)
             let dayNames = { Monday:'MON', Tuesday:'TUE', Wednesday:'WED', Thursday:'THU', Friday:'FRI', Saturday:'SAT', Sunday:'SUN' };
             let typeLabel = { class:'', duty:'🔔 Duty', break:'☕ Break', lunch:'🍽️ Lunch' };
-            let html = '<table class="timetable"><thead><tr><th>Period</th>';
-            customDays.forEach(d=>{ let cls = d==='Saturday'?'saturday':d==='Sunday'?'sunday':''; html+=`<th class="${cls}">${dayNames[d]||d.substring(0,3)}</th>`; });
-            html+='<tr></thead><tbody>';
-            for(let pName of periodNames){
-                // Find a sample schedule to get start/end times (or use period definition from any class)
-                let sampleSched = teacherScheds.find(s=>s.periodName===pName);
-                let startTime = sampleSched.startTime || "??:??";
-                let endTime = sampleSched.endTime || "??:??";
-                // try to get from class period if missing
-                if(!sampleSched.startTime){
-                    let pDef = getPeriodsForClass(sampleSched.classId).find(p=>p.name===pName);
-                    if(pDef){ startTime = pDef.start; endTime = pDef.end; }
-                }
-                let rowBg = (sampleSched.type === 'break' || sampleSched.type === 'lunch') ? (sampleSched.type==='break'?'#fff8e1':'#fce4ec') : '';
-                html+=`<tr style="background:${rowBg}"><td class="time-cell"><strong>${pName}</strong><br><small>${startTime}-${endTime}</small></td>`;
-                for(let day of customDays){
-                    let isSat=day==='Saturday', isSun=day==='Sunday';
-                    let cellBg = isSat?'#fff3e0':isSun?'#fce4ec':rowBg;
-                    let key = day + '|' + pName;
-                    let scheds = map[key] || [];
-                    html+=`<td style="background:${cellBg}">`;
-                    for(let s of scheds){
-                        let cardCls='schedule-card';
-                        if(s.type==='break') cardCls+=' break';
-                        else if(s.type==='lunch') cardCls+=' lunch';
-                        else if(s.type==='duty') cardCls+=' duty';
-                        let portionText = s.portion ? ` (${s.portion})` : '';
-                        let typeTag = s.type!=='class' ? `<span style="font-size:9px;font-weight:bold">${typeLabel[s.type]||s.type}</span><br>` : '';
-                        let className = getClassName(s.classId);
-                        let portionColor = s.portion ? getPortionColor(s.subject, s.portion) : getSubjectColor(s.subject);
-                        html+=`<div class="${cardCls}" style="background:${portionColor}20;border-left-color:${getTeacherColor(s.teacher)}" ondblclick="openEditModal(${JSON.stringify(s).replace(/"/g,'&quot;')},${schedules.findIndex(x=>x===s)})">
-                            ${typeTag}<strong>${getSubjectName(s.subject)}${portionText}</strong>
-                            <small>🏫 ${className}</small>
-                        </div>`;
+            
+            // First, determine all unique time blocks across all days (to align rows)
+            // But easier: build rows per day independently, then find the maximum number of rows across days?
+            // Since days may have different numbers of blocks, we need to create a single set of rows that covers all days.
+            // Approach: collect all possible time slots (unique start times) from all days.
+            let allBlocks = [];
+            for(let day of customDays){
+                let scheds = [...schedulesByDay[day]];
+                // get start and end times for each schedule
+                let blocks = [];
+                for(let s of scheds){
+                    let startTime = s.startTime;
+                    let endTime = s.endTime;
+                    if(!startTime || !endTime){
+                        let ps = getPeriodsForClass(s.classId);
+                        let p = ps.find(p=>p.name===s.periodName);
+                        if(p){ startTime = p.start; endTime = p.end; }
                     }
-                    html+=`<\/td>`;
+                    if(startTime && endTime){
+                        blocks.push({
+                            start: startTime,
+                            end: endTime,
+                            type: 'occupied',
+                            schedule: s
+                        });
+                    }
                 }
-                html+=`<\/tr>`;
+                // sort blocks by start time
+                blocks.sort((a,b)=>timeToMinutes(a.start)-timeToMinutes(b.start));
+                // add gaps between blocks
+                let finalBlocks = [];
+                let lastEnd = null;
+                for(let i=0; i<blocks.length; i++){
+                    let block = blocks[i];
+                    if(lastEnd !== null){
+                        let gapMinutes = timeToMinutes(block.start) - timeToMinutes(lastEnd);
+                        if(gapMinutes > 0){
+                            let gapType = gapMinutes <= 15 ? 'small' : 'large';
+                            finalBlocks.push({
+                                start: lastEnd,
+                                end: block.start,
+                                type: 'gap',
+                                gapMinutes: gapMinutes,
+                                gapType: gapType
+                            });
+                        }
+                    }
+                    finalBlocks.push(block);
+                    lastEnd = block.end;
+                }
+                // store day blocks
+                schedulesByDay[day] = finalBlocks;
+                // collect all distinct block indices? Not needed, we will render each day independently but rows must align.
+                // To align, we will create a combined list of rows based on the maximum number of blocks in any day.
+            }
+            // Find max number of blocks across days
+            let maxBlocks = 0;
+            for(let day of customDays){
+                maxBlocks = Math.max(maxBlocks, schedulesByDay[day].length);
+            }
+            // Build table: rows = 0..maxBlocks-1, columns = days
+            let html = '<table class="timetable"><thead><tr><th>#</th>';
+            for(let day of customDays){
+                let cls = day==='Saturday'?'saturday':day==='Sunday'?'sunday':'';
+                html+=`<th class="${cls}">${dayNames[day]||day.substring(0,3)}</th>`;
+            }
+            html+='</tr></thead><tbody>';
+            for(let rowIdx=0; rowIdx<maxBlocks; rowIdx++){
+                html+='<tr>';
+                // row header: show time range for the first non-gap block? Or just row number
+                // Get the time range from the first column's block (if exists)
+                let firstColBlock = (customDays[0] && schedulesByDay[customDays[0]][rowIdx]) ? schedulesByDay[customDays[0]][rowIdx] : null;
+                let rowHeader = '';
+                if(firstColBlock && firstColBlock.type === 'occupied'){
+                    rowHeader = `${firstColBlock.start}-${firstColBlock.end}`;
+                } else if(firstColBlock && firstColBlock.type === 'gap'){
+                    rowHeader = `${firstColBlock.start}-${firstColBlock.end} (${firstColBlock.gapMinutes} min)`;
+                } else {
+                    rowHeader = `Slot ${rowIdx+1}`;
+                }
+                html+=`<td class="time-cell"><small>${rowHeader}</small></td>`;
+                for(let day of customDays){
+                    let block = schedulesByDay[day][rowIdx];
+                    let cellContent = '';
+                    if(block){
+                        if(block.type === 'occupied'){
+                            let s = block.schedule;
+                            let cardCls='schedule-card';
+                            if(s.type==='break') cardCls+=' break';
+                            else if(s.type==='lunch') cardCls+=' lunch';
+                            else if(s.type==='duty') cardCls+=' duty';
+                            let portionText = s.portion ? ` (${s.portion})` : '';
+                            let typeTag = s.type!=='class' ? `<span style="font-size:9px;font-weight:bold">${typeLabel[s.type]||s.type}</span><br>` : '';
+                            let className = getClassName(s.classId);
+                            let portionColor = s.portion ? getPortionColor(s.subject, s.portion) : getSubjectColor(s.subject);
+                            cellContent = `<div class="${cardCls}" style="background:${portionColor}20;border-left-color:${getTeacherColor(s.teacher)}" ondblclick="openEditModal(${JSON.stringify(s).replace(/"/g,'&quot;')},${schedules.findIndex(x=>x===s)})">
+                                ${typeTag}<strong>${getSubjectName(s.subject)}${portionText}</strong>
+                                <small>🏫 ${className}</small>
+                            </div>`;
+                        } else if(block.type === 'gap'){
+                            let gapClass = block.gapType === 'small' ? 'small' : 'large';
+                            cellContent = `<div class="gap-card ${gapClass}">⏱️ ${block.gapMinutes} min gap</div>`;
+                        }
+                    }
+                    let isSat=day==='Saturday', isSun=day==='Sunday';
+                    let cellBg = isSat?'#fff3e0':isSun?'#fce4ec':'';
+                    html+=`<td style="background:${cellBg}">${cellContent}</td>`;
+                }
+                html+='</tr>';
             }
             html+=`</tbody></table>`;
             document.getElementById('timetable-container').innerHTML = html;
@@ -584,7 +682,7 @@
             document.getElementById('teacher-class-info').innerHTML = `🏫 Teaches: ${getTeacherClassString(teacherId)}`;
             return;
         }
-        // Class view (unchanged, uses class‑specific periods)
+        // Class view (unchanged)
         let classId = parseInt(sid);
         let filtered = schedules.filter(s => s.classId == classId);
         let periodsToUse = getPeriodsForClass(classId);
@@ -620,7 +718,7 @@
             }
             html+=`<\/tr>`;
         }
-        html+=`</tbody></table>`;
+        html+=`</tbody><table>`;
         document.getElementById('timetable-container').innerHTML = html;
         updateTimetableHeader();
         document.getElementById('teacher-class-info').innerHTML = '';
