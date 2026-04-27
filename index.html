@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>SSMT Timetable - With Time Gaps in Personal Timetable</title>
+    <title>SSMT Timetable - Personal Timetable with Time Ranges</title>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
@@ -71,7 +71,7 @@
         .timetable th.sunday { background: #e91e63; }
         .timetable td.saturday { background: #fff3e0; }
         .timetable td.sunday { background: #fce4ec; }
-        .time-cell { background: #f0f0f0; font-weight: bold; width: 70px; }
+        .time-cell { background: #f0f0f0; font-weight: bold; width: 100px; }
         .schedule-card {
             margin: 3px 0;
             padding: 4px;
@@ -254,7 +254,7 @@
             .timetable-wrapper { overflow-x: auto; }
             .timetable { font-size: 9px; min-width: 500px; }
             .schedule-card strong { font-size: 9px; }
-            .time-cell { width: 55px; }
+            .time-cell { width: 80px; }
             .dashboard-table { font-size: 10px; min-width: 400px; }
             .print-options { flex-direction: column; }
             .floating-save { padding: 8px 16px; font-size: 12px; bottom: 16px; right: 16px; }
@@ -264,7 +264,7 @@
 <body>
 <div class="container">
     <div class="header">
-        <h1>📅 SSMT Timetable - With Time Gaps</h1>
+        <h1>📅 SSMT Timetable - Personal Timetable with Time Ranges</h1>
         <div><div id="sync-status" class="sync-status">🔄 Connecting...</div></div>
     </div>
     <div class="tabs">
@@ -396,7 +396,6 @@
             let p = ps.find(p=>p.name===periodName);
             if(p) return p.start;
         }
-        // search any class
         for(let cid in classPeriods){
             let p = classPeriods[cid].find(p=>p.name===periodName);
             if(p) return p.start;
@@ -528,7 +527,7 @@
             let totalP=data.periods, totalH=data.hours;
             html+=`<tr class="total-row"><td colspan="2"><strong>${cName} — Total<\/strong><\/td><td><strong>${totalP}<\/strong><\/td><td><strong>${totalH.toFixed(1)}<\/strong><\/td><\/tr>`;
         }
-        html+=`</tbody></table><\/div><\/div>`;
+        html+=`</tbody></td><\/div><\/div>`;
         document.getElementById('dashboard-stats').innerHTML=html;
         // Invalid data
         let invalid=[];
@@ -544,7 +543,7 @@
     }
     function deleteInvalidSchedule(idx){if(confirm("Delete?")){schedules.splice(idx,1);saveToLocal();saveToFirestore();updateAll();showToast("Deleted");}}
     
-    // ========== TEACHER PERSONAL TIMETABLE WITH TIME GAPS ==========
+    // ========== TEACHER PERSONAL TIMETABLE WITH TIME RANGES IN ROW HEADER ==========
     function renderTimetable(){
         let sid = document.getElementById('view-select').value;
         if(!sid){ document.getElementById('timetable-container').innerHTML='<p>Select an item</p>'; return; }
@@ -563,18 +562,9 @@
             teacherScheds.forEach(s => {
                 if(schedulesByDay[s.day]) schedulesByDay[s.day].push(s);
             });
-            // For each day, sort by start time and build time blocks (occupied + gaps)
-            let dayNames = { Monday:'MON', Tuesday:'TUE', Wednesday:'WED', Thursday:'THU', Friday:'FRI', Saturday:'SAT', Sunday:'SUN' };
-            let typeLabel = { class:'', duty:'🔔 Duty', break:'☕ Break', lunch:'🍽️ Lunch' };
-            
-            // First, determine all unique time blocks across all days (to align rows)
-            // But easier: build rows per day independently, then find the maximum number of rows across days?
-            // Since days may have different numbers of blocks, we need to create a single set of rows that covers all days.
-            // Approach: collect all possible time slots (unique start times) from all days.
-            let allBlocks = [];
+            // For each day, build blocks (occupied + gaps) sorted by start time
             for(let day of customDays){
                 let scheds = [...schedulesByDay[day]];
-                // get start and end times for each schedule
                 let blocks = [];
                 for(let s of scheds){
                     let startTime = s.startTime;
@@ -595,7 +585,7 @@
                 }
                 // sort blocks by start time
                 blocks.sort((a,b)=>timeToMinutes(a.start)-timeToMinutes(b.start));
-                // add gaps between blocks
+                // add gaps
                 let finalBlocks = [];
                 let lastEnd = null;
                 for(let i=0; i<blocks.length; i++){
@@ -616,18 +606,16 @@
                     finalBlocks.push(block);
                     lastEnd = block.end;
                 }
-                // store day blocks
                 schedulesByDay[day] = finalBlocks;
-                // collect all distinct block indices? Not needed, we will render each day independently but rows must align.
-                // To align, we will create a combined list of rows based on the maximum number of blocks in any day.
             }
             // Find max number of blocks across days
             let maxBlocks = 0;
             for(let day of customDays){
                 maxBlocks = Math.max(maxBlocks, schedulesByDay[day].length);
             }
-            // Build table: rows = 0..maxBlocks-1, columns = days
-            let html = '<table class="timetable"><thead><tr><th>#</th>';
+            let dayNames = { Monday:'MON', Tuesday:'TUE', Wednesday:'WED', Thursday:'THU', Friday:'FRI', Saturday:'SAT', Sunday:'SUN' };
+            let typeLabel = { class:'', duty:'🔔 Duty', break:'☕ Break', lunch:'🍽️ Lunch' };
+            let html = '<table class="timetable"><thead><tr><th>Time</th>';
             for(let day of customDays){
                 let cls = day==='Saturday'?'saturday':day==='Sunday'?'sunday':'';
                 html+=`<th class="${cls}">${dayNames[day]||day.substring(0,3)}</th>`;
@@ -635,16 +623,20 @@
             html+='</tr></thead><tbody>';
             for(let rowIdx=0; rowIdx<maxBlocks; rowIdx++){
                 html+='<tr>';
-                // row header: show time range for the first non-gap block? Or just row number
-                // Get the time range from the first column's block (if exists)
-                let firstColBlock = (customDays[0] && schedulesByDay[customDays[0]][rowIdx]) ? schedulesByDay[customDays[0]][rowIdx] : null;
+                // Determine row header: find first block across days that exists at this row index
                 let rowHeader = '';
-                if(firstColBlock && firstColBlock.type === 'occupied'){
-                    rowHeader = `${firstColBlock.start}-${firstColBlock.end}`;
-                } else if(firstColBlock && firstColBlock.type === 'gap'){
-                    rowHeader = `${firstColBlock.start}-${firstColBlock.end} (${firstColBlock.gapMinutes} min)`;
+                let foundBlock = null;
+                for(let day of customDays){
+                    let block = schedulesByDay[day][rowIdx];
+                    if(block){
+                        foundBlock = block;
+                        break;
+                    }
+                }
+                if(foundBlock){
+                    rowHeader = `${foundBlock.start} - ${foundBlock.end}`;
                 } else {
-                    rowHeader = `Slot ${rowIdx+1}`;
+                    rowHeader = `No period`;
                 }
                 html+=`<td class="time-cell"><small>${rowHeader}</small></td>`;
                 for(let day of customDays){
@@ -690,7 +682,7 @@
         let typeLabel = { class:'', duty:'🔔 Duty', break:'☕ Break', lunch:'🍽️ Lunch' };
         let html = '<table class="timetable"><thead><tr><th>Period</th>';
         customDays.forEach(d=>{ let cls = d==='Saturday'?'saturday':d==='Sunday'?'sunday':''; html+=`<th class="${cls}">${dayNames[d]||d.substring(0,3)}</th>`; });
-        html+='<tr></thead><tbody>';
+        html+='</tr></thead><tbody>';
         for(let p of periodsToUse){
             let isBreak = p.type==='break', isLunch = p.type==='lunch';
             let rowBg = isBreak?'#fff8e1':isLunch?'#fce4ec':'';
@@ -718,7 +710,7 @@
             }
             html+=`<\/tr>`;
         }
-        html+=`</tbody><table>`;
+        html+=`</tbody></table>`;
         document.getElementById('timetable-container').innerHTML = html;
         updateTimetableHeader();
         document.getElementById('teacher-class-info').innerHTML = '';
