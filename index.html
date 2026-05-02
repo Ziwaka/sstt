@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>SSMT Timetable - With Last Sync Time Display</title>
+    <title>SSMT Timetable - Full Dashboard + Reliable Cloud Sync</title>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
@@ -269,7 +269,7 @@
 <body>
 <div class="container">
     <div class="header">
-        <h1>📅 SSMT Timetable - With Last Sync Info</h1>
+        <h1>📅 SSMT Timetable - Full Feature + Reliable Sync</h1>
         <div style="text-align: right;">
             <div id="sync-status" class="sync-status">🔄 Connecting...</div>
             <div id="last-sync-info" class="last-sync"></div>
@@ -296,7 +296,7 @@
             <div class="card printable">
                 <div id="timetable-header-container"></div>
                 <div style="display:flex; gap:12px; margin-bottom:12px;">
-                    <label><input type="radio" name="viewType" value="teacher" checked onchange="changeViewType('teacher')"> 👨‍🏫 Teacher Personal (with time gaps)</label>
+                    <label><input type="radio" name="viewType" value="teacher" checked onchange="changeViewType('teacher')"> 👨‍🏫 Teacher Personal (with gaps)</label>
                     <label><input type="radio" name="viewType" value="class" onchange="changeViewType('class')"> 🏫 By Class</label>
                 </div>
                 <div class="form-group"><label id="select-label">Select Teacher</label><select id="view-select" onchange="renderTimetable()"></select></div>
@@ -330,7 +330,14 @@
             <div class="card"><h3>🌍 Global Periods (for Availability & default periods)</h3><div id="global-periods-list"></div><div class="grid-2"><input id="global-period-name" placeholder="Name"><input type="time" id="global-period-start" value="08:00"><input type="time" id="global-period-end" value="08:45"><select id="global-period-type"><option>class</option><option>break</option><option>lunch</option><option>duty</option></select></div><button onclick="addGlobalPeriod()">Add Global Period</button><button onclick="resetGlobalPeriods()" class="btn-sm">Reset to 20 Periods</button></div>
             <div class="card"><h3>📅 Custom Days</h3><div id="days-list"></div><div class="grid-2"><input id="new-day"><button onclick="addDay()">Add Day</button></div><button onclick="resetDays()" class="btn-sm">Reset to Mon-Sat</button></div>
             <div class="card"><h3>🎉 Holidays</h3><div class="grid-2"><input type="date" id="holiday-date"><input id="holiday-name" placeholder="Name"></div><button onclick="addHoliday()">Add</button><div id="holidays-list"></div></div>
-            <div class="card"><h3>📥 Data Management</h3><button onclick="exportData()">Export</button><button onclick="importData()">Import</button><input type="file" id="import-file" style="display:none;"><button onclick="forceCloudSync()" class="btn-success">☁️ Sync to Cloud</button><button id="retrySyncBtn" onclick="manualRetrySync()" class="btn-warning">🔄 Retry Sync</button></div>
+            <div class="card"><h3>📥 Data Management</h3>
+                <button onclick="exportData()">Export</button>
+                <button onclick="importData()">Import</button>
+                <input type="file" id="import-file" style="display:none;">
+                <button onclick="forceCloudSync()" class="btn-success">☁️ Sync to Cloud (Force Upload)</button>
+                <button onclick="loadFromCloudManual(true)" class="btn-warning">📥 Load from Cloud (Overwrite Local)</button>
+                <button onclick="manualRetrySync()" class="btn-warning">🔄 Retry Sync (Compare)</button>
+            </div>
         </div>
     </div>
 </div>
@@ -355,27 +362,17 @@
     // Data
     let teachers = [], classes = [], subjects = [], schedules = [], holidays = [], classPeriods = {};
     let customDays = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-    let lastCloudSyncTime = null; // timestamp in milliseconds
-    let localDataUpdated = Date.now();
-    
-    function generateDefaultGlobalPeriods() {
-        let periods = [];
-        let start = 8 * 60;
-        for (let i = 1; i <= 20; i++) {
-            let startMin = start + (i-1)*45;
-            let endMin = startMin + 45;
-            let startH = Math.floor(startMin/60);
-            let startM = startMin % 60;
-            let endH = Math.floor(endMin/60);
-            let endM = endMin % 60;
-            let startStr = `${startH.toString().padStart(2,'0')}:${startM.toString().padStart(2,'0')}`;
-            let endStr = `${endH.toString().padStart(2,'0')}:${endM.toString().padStart(2,'0')}`;
-            periods.push({ name: `Period ${i}`, start: startStr, end: endStr, type: "class" });
-        }
-        return periods;
-    }
-    let globalPeriods = generateDefaultGlobalPeriods();
-    
+    let globalPeriods = [
+        { name:"Period 1", start:"08:00", end:"09:00", type:"class" },
+        { name:"Period 2", start:"09:00", end:"10:00", type:"class" },
+        { name:"Period 3", start:"10:00", end:"11:00", type:"class" },
+        { name:"Break", start:"11:00", end:"11:15", type:"break" },
+        { name:"Period 4", start:"11:15", end:"12:15", type:"class" },
+        { name:"Lunch", start:"12:15", end:"13:15", type:"lunch" },
+        { name:"Period 5", start:"13:15", end:"14:15", type:"class" },
+        { name:"Period 6", start:"14:15", end:"15:15", type:"class" }
+    ];
+    let lastCloudSyncTime = null;
     let currentView = 'teacher';
     let modalContext = {};
     let currentUser = null;
@@ -427,15 +424,8 @@
         let gp = globalPeriods.find(p=>p.name===periodName);
         return gp ? gp.end : "00:00";
     }
-    function timeToMinutes(t){
-        let [h,m] = t.split(':').map(Number);
-        return h*60 + m;
-    }
-    function minutesToTime(min){
-        let h = Math.floor(min/60);
-        let m = min % 60;
-        return `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}`;
-    }
+    function timeToMinutes(t){ let [h,m]=t.split(':').map(Number); return h*60+m; }
+    
     function updateSyncStatusDisplay(message, className, lastSyncMills = null){
         let statusDiv = document.getElementById('sync-status');
         let lastSyncDiv = document.getElementById('last-sync-info');
@@ -452,16 +442,10 @@
         }
     }
     
-    // Storage & Cloud with last sync tracking
+    // Storage & Cloud
     function saveToLocal(){
-        let dataToStore = {
-            teachers, classes, subjects, schedules, holidays, classPeriods,
-            customDays, schoolInfo, globalPeriods,
-            _updated: Date.now(),
-            _lastCloudSync: lastCloudSyncTime
-        };
-        localStorage.setItem('tm_data', JSON.stringify(dataToStore));
-        localDataUpdated = Date.now();
+        let data = { teachers, classes, subjects, schedules, holidays, classPeriods, customDays, schoolInfo, globalPeriods, _updated: Date.now(), _lastCloudSync: lastCloudSyncTime };
+        localStorage.setItem('tm_data', JSON.stringify(data));
     }
     function loadFromLocal(){
         let d = localStorage.getItem('tm_data');
@@ -474,9 +458,9 @@
             holidays = p.holidays || [];
             classPeriods = p.classPeriods || {};
             customDays = p.customDays || ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-            if(p.schoolInfo) schoolInfo = p.schoolInfo;
-            if(p.globalPeriods) globalPeriods = p.globalPeriods;
-            if(p._lastCloudSync) lastCloudSyncTime = p._lastCloudSync;
+            schoolInfo = p.schoolInfo || schoolInfo;
+            globalPeriods = p.globalPeriods || globalPeriods;
+            lastCloudSyncTime = p._lastCloudSync || null;
             updateLogoPreview();
             updateSchoolInfoForm();
             updateSyncStatusDisplay('💾 Local data', 'local', lastCloudSyncTime);
@@ -484,12 +468,10 @@
         }
         return false;
     }
-    async function loadFromCloudAuto(){
-        if(!currentUser) return false;
-        if(!navigator.onLine){
-            updateSyncStatusDisplay('⚠️ Offline (using local)', 'offline', lastCloudSyncTime);
-            return false;
-        }
+    async function loadFromCloudManual(overwrite = false){
+        if(!currentUser){ showToast("Please wait for authentication","warning"); return; }
+        if(!navigator.onLine){ showToast("No internet connection.","error"); return; }
+        updateSyncStatusDisplay('🔄 Loading from cloud...', 'syncing', lastCloudSyncTime);
         try {
             await firebase.firestore().enableNetwork();
             let doc = await db.collection('school').doc('shared').get();
@@ -498,7 +480,7 @@
                 let cloudTs = d.updated?.toMillis() || 0;
                 let localRaw = localStorage.getItem('tm_data');
                 let localTs = localRaw ? JSON.parse(localRaw)._updated || 0 : 0;
-                if(cloudTs >= localTs){
+                if(overwrite || cloudTs > localTs){
                     teachers = d.teachers || [];
                     classes = d.classes || [];
                     subjects = d.subjects || [];
@@ -508,92 +490,106 @@
                     customDays = d.customDays || ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
                     schoolInfo = d.schoolInfo || schoolInfo;
                     globalPeriods = d.globalPeriods || globalPeriods;
-                    if(d._lastCloudSync) lastCloudSyncTime = d._lastCloudSync;
-                    else lastCloudSyncTime = cloudTs;
+                    lastCloudSyncTime = cloudTs;
                     updateLogoPreview();
                     updateSchoolInfoForm();
                     saveToLocal();
-                    updateSyncStatusDisplay('☁️ Online (Cloud up to date)', 'online', lastCloudSyncTime);
-                    return true;
+                    updateSyncStatusDisplay('☁️ Loaded from cloud', 'online', lastCloudSyncTime);
+                    updateAll();
+                    showToast("Cloud data loaded successfully");
                 } else {
-                    // local is newer
-                    if(d._lastCloudSync) lastCloudSyncTime = d._lastCloudSync;
-                    updateSyncStatusDisplay('💻 Online (Local newer)', 'local', lastCloudSyncTime);
-                    return false;
+                    updateSyncStatusDisplay('💻 Local is newer', 'local', lastCloudSyncTime);
+                    showToast("Local data is newer than cloud. Use 'Sync to Cloud' to upload.","warning");
                 }
             } else {
-                updateSyncStatusDisplay('💾 Local only', 'local', lastCloudSyncTime);
-                return false;
+                showToast("No cloud data found","warning");
+                updateSyncStatusDisplay('📭 No cloud data', 'local', lastCloudSyncTime);
             }
         } catch(e){
-            console.warn(e);
-            updateSyncStatusDisplay('⚠️ Offline (using local)', 'offline', lastCloudSyncTime);
-            return false;
+            console.error(e);
+            showToast("Error loading from cloud: " + e.message, "error");
+            updateSyncStatusDisplay('⚠️ Load failed', 'offline', lastCloudSyncTime);
         }
     }
-    async function saveToFirestore(){
-        if(!currentUser) return;
-        if(!navigator.onLine){
-            showToast("No internet. Saved locally only.", "warning");
-            saveToLocal();
-            return;
-        }
+    async function forceCloudSync(){
+        if(!currentUser){ showToast("Please wait for authentication","warning"); return; }
+        if(!navigator.onLine){ showToast("No internet. Saved locally only.","warning"); saveToLocal(); return; }
+        updateSyncStatusDisplay('🔄 Uploading to cloud...', 'syncing', lastCloudSyncTime);
         try {
             await firebase.firestore().enableNetwork();
             let now = Date.now();
             lastCloudSyncTime = now;
             await db.collection('school').doc('shared').set({
-                teachers, classes, subjects, schedules, holidays, classPeriods,
-                customDays, schoolInfo, globalPeriods,
+                teachers, classes, subjects, schedules, holidays, classPeriods, customDays, schoolInfo, globalPeriods,
                 updated: firebase.firestore.FieldValue.serverTimestamp(),
                 _lastCloudSync: now
             });
-            saveToLocal(); // update local storage with lastCloudSyncTime
+            saveToLocal();
             updateSyncStatusDisplay('☁️ Synced to cloud', 'online', now);
-            showToast("Saved to cloud");
+            showToast("Force upload complete");
         } catch(e){
-            showToast("Cloud save failed: " + e.message, "error");
-            updateSyncStatusDisplay('⚠️ Sync failed', 'offline', lastCloudSyncTime);
+            console.error(e);
+            showToast("Upload failed: " + e.message, "error");
+            updateSyncStatusDisplay('⚠️ Upload failed', 'offline', lastCloudSyncTime);
         }
     }
-    async function loadFromCloudManual(){
-        if(!currentUser){ showToast("Wait for auth","warning"); return; }
-        if(!navigator.onLine){ showToast("No internet connection.","error"); return; }
-        updateSyncStatusDisplay('🔄 Syncing...', 'syncing', lastCloudSyncTime);
-        let ok = await loadFromCloudAuto();
-        if(ok) updateAll();
-        else if(lastCloudSyncTime) showToast("Cloud data is not newer than local","warning");
-        else showToast("No cloud data found","warning");
-    }
-    function forceCloudSync(){ saveToLocal(); saveToFirestore(); }
-    function globalSave(){ saveToLocal(); saveToFirestore(); showToast("All saved to local & cloud"); }
     async function manualRetrySync(){
-        if(!currentUser){ showToast("Please wait for authentication","warning"); return; }
+        if(!currentUser){ showToast("Wait for auth","warning"); return; }
         if(!navigator.onLine){ showToast("No internet connection.","error"); return; }
         updateSyncStatusDisplay('🔄 Syncing...', 'syncing', lastCloudSyncTime);
         try {
             await firebase.firestore().enableNetwork();
-            let ok = await loadFromCloudAuto();
-            if(ok){
-                updateAll();
-                showToast("Sync successful");
+            let doc = await db.collection('school').doc('shared').get();
+            if(doc.exists){
+                let d = doc.data();
+                let cloudTs = d.updated?.toMillis() || 0;
+                let localRaw = localStorage.getItem('tm_data');
+                let localTs = localRaw ? JSON.parse(localRaw)._updated || 0 : 0;
+                if(cloudTs > localTs){
+                    if(confirm("Cloud data is newer. Overwrite local?")){
+                        teachers = d.teachers || [];
+                        classes = d.classes || [];
+                        subjects = d.subjects || [];
+                        schedules = d.schedules || [];
+                        holidays = d.holidays || [];
+                        classPeriods = d.classPeriods || {};
+                        customDays = d.customDays || ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+                        schoolInfo = d.schoolInfo || schoolInfo;
+                        globalPeriods = d.globalPeriods || globalPeriods;
+                        lastCloudSyncTime = cloudTs;
+                        updateLogoPreview();
+                        updateSchoolInfoForm();
+                        saveToLocal();
+                        updateAll();
+                        showToast("Cloud data loaded (newer)");
+                        updateSyncStatusDisplay('☁️ Loaded newer cloud data', 'online', lastCloudSyncTime);
+                    }
+                } else if(localTs > cloudTs){
+                    showToast("Local data is newer than cloud. Use 'Sync to Cloud' to upload.","warning");
+                    updateSyncStatusDisplay('💻 Local newer', 'local', lastCloudSyncTime);
+                } else {
+                    showToast("Data is already in sync.","success");
+                    updateSyncStatusDisplay('✅ In sync', 'online', lastCloudSyncTime);
+                }
             } else {
-                showToast("Cloud data is not newer than local","warning");
+                showToast("No cloud data. Use 'Sync to Cloud' to upload.","warning");
+                updateSyncStatusDisplay('📭 No cloud data', 'local', lastCloudSyncTime);
             }
         } catch(e){
             showToast("Sync failed: "+e.message,"error");
             updateSyncStatusDisplay('⚠️ Sync failed', 'offline', lastCloudSyncTime);
         }
     }
+    function globalSave(){ saveToLocal(); forceCloudSync(); }
     
     // School UI
     function uploadLogo(input){if(input.files&&input.files[0]){let r=new FileReader();r.onload=e=>{schoolInfo.logo=e.target.result;document.getElementById('logo-preview').innerHTML=`<img src="${schoolInfo.logo}">`;saveSchoolInfo();};r.readAsDataURL(input.files[0]);}}
     function removeLogo(){schoolInfo.logo=null;document.getElementById('logo-preview').innerHTML='No Logo';document.getElementById('logo-upload').value='';saveSchoolInfo();}
     function updateLogoPreview(){let p=document.getElementById('logo-preview');if(schoolInfo.logo)p.innerHTML=`<img src="${schoolInfo.logo}">`;else p.innerHTML='No Logo';}
-    function saveSchoolInfo(){schoolInfo.name=document.getElementById('school-name').value;schoolInfo.year=document.getElementById('academic-year').value;schoolInfo.phone=document.getElementById('school-phone').value;saveToLocal();saveToFirestore();updateTimetableHeader();showToast("School saved");}
+    function saveSchoolInfo(){schoolInfo.name=document.getElementById('school-name').value;schoolInfo.year=document.getElementById('academic-year').value;schoolInfo.phone=document.getElementById('school-phone').value;saveToLocal();forceCloudSync();updateTimetableHeader();showToast("School saved");}
     function updateSchoolInfoForm(){let n=document.getElementById('school-name'),y=document.getElementById('academic-year'),p=document.getElementById('school-phone');if(n)n.value=schoolInfo.name;if(y)y.value=schoolInfo.year;if(p)p.value=schoolInfo.phone;}
     
-    // Dashboard (full featured - same as before, works)
+    // Complete Dashboard (Full Feature)
     function updateDashboard(){
         let teacherStats = {}, classStats = {};
         let TYPES = ['class','duty','break','lunch'];
@@ -630,6 +626,7 @@
             }
         });
         let html = '';
+        // Summary Table (Teacher vs Class)
         let allClassIds = [...new Set(schedules.filter(s=>s.type==='class').map(s=>s.classId))];
         let allClassNames = allClassIds.map(id=>({id,name:getClassName(id)})).sort((a,b)=>a.name.localeCompare(b.name));
         html += `<div class="stat-card"><div class="stat-header">📋 ဆရာ × အတန်း သင်ချိန် (နာရီ)</div><div class="stat-body"><table class="dashboard-table"><thead><th>ဆရာ/မ</th>${allClassNames.map(c=>`<th>${c.name}</th>`).join('')}<th>စုစုပေါင်း</th></thead><tbody>`;
@@ -647,6 +644,7 @@
             html+=`<td style="text-align:center;font-weight:bold;color:#1565c0">${grandH.toFixed(1)}h<\/td><\/tr>`;
         }
         html+=`</tbody></table><\/div><\/div>`;
+        // Teacher Detail Cards
         html+=`<div class="stat-card"><div class="stat-header">👨‍🏫 ဆရာ/မ အသေးစိတ် (နေ့စဉ်၊ အမျိုးအစားအလိုက်)</div><div class="stat-body">`;
         for(let [tid, byType] of sortedTeachers){
             let tName=getTeacherName(parseInt(tid)), tColor=getTeacherColor(parseInt(tid));
@@ -667,16 +665,18 @@
             html+=`</tbody></table><\/div><\/div><\/div>`;
         }
         html+=`</div></div>`;
+        // Class Statistics
         html+=`<div class="stat-card"><div class="stat-header">🏫 Class Statistics (သင်ချိန်သာ)</div><div class="stat-body"><table class="dashboard-table"><thead><th>အတန်း</th><th>ဘာသာရပ် / ဆရာ</th><th>Periods</th><th>နာရီ</th></thead><tbody>`;
         for(let [cid, data] of Object.entries(classStats)){
             let cName=getClassName(parseInt(cid));
-            for(let [sName, sd] of Object.entries(data.subjects)) html+=`<td><td>${cName}<\/td><td>📖 ${sName}<\/td><td>${sd.periods}<\/td><td>${sd.hours.toFixed(1)}<\/td><\/tr>`;
+            for(let [sName, sd] of Object.entries(data.subjects)) html+=`<table><td>${cName}<\/td><td>📖 ${sName}<\/td><td>${sd.periods}<\/td><td>${sd.hours.toFixed(1)}<\/td><\/tr>`;
             for(let [tName, td] of Object.entries(data.teacherDetails)) html+=`<tr style="background:#f3f3f3"><td>${cName}<\/td><td>👨‍🏫 ${tName}<\/td><td>${td.periods}<\/td><td>${td.hours.toFixed(1)}<\/td><\/tr>`;
             let totalP=data.periods, totalH=data.hours;
             html+=`<tr class="total-row"><td colspan="2"><strong>${cName} — Total<\/strong><\/td><td><strong>${totalP}<\/strong><\/td><td><strong>${totalH.toFixed(1)}<\/strong><\/td><\/tr>`;
         }
-        html+=`</tbody><tr><\/div><\/div>`;
+        html+=`</tbody></table><\/div><\/div>`;
         document.getElementById('dashboard-stats').innerHTML=html;
+        // Invalid data
         let invalid=[];
         schedules.forEach((s,idx)=>{
             if(!teachers.some(t=>t.id==s.teacher)) invalid.push({type:'Teacher',name:s.teacher,idx});
@@ -688,9 +688,9 @@
         });
         document.getElementById('invalid-data-list').innerHTML=invalid.length?invalid.map(iv=>`<div class="item"><div>⚠️ Invalid ${iv.type}: ${iv.name}</div><button class="delete-btn" onclick="deleteInvalidSchedule(${iv.idx})">Delete</button></div>`).join(''):'<div>No invalid data</div>';
     }
-    function deleteInvalidSchedule(idx){if(confirm("Delete?")){schedules.splice(idx,1);saveToLocal();saveToFirestore();updateAll();showToast("Deleted");}}
+    function deleteInvalidSchedule(idx){if(confirm("Delete?")){schedules.splice(idx,1);saveToLocal();forceCloudSync();updateAll();showToast("Deleted");}}
     
-    // Teacher Personal Timetable (same as before)
+    // Teacher Personal Timetable (with time gaps)
     function renderTimetable(){
         let sid = document.getElementById('view-select').value;
         if(!sid){ document.getElementById('timetable-container').innerHTML='<p>Select an item</p>'; return; }
@@ -789,7 +789,7 @@
             document.getElementById('teacher-class-info').innerHTML = `🏫 Teaches: ${getTeacherClassString(teacherId)}`;
             return;
         }
-        // Class view
+        // Class view (unchanged)
         let classId = parseInt(sid);
         let filtered = schedules.filter(s => s.classId == classId);
         let periodsToUse = getPeriodsForClass(classId);
@@ -797,7 +797,7 @@
         let typeLabel = { class:'', duty:'🔔 Duty', break:'☕ Break', lunch:'🍽️ Lunch' };
         let html = '<table class="timetable"><thead><tr><th>Period</th>';
         customDays.forEach(d=>{ let cls = d==='Saturday'?'saturday':d==='Sunday'?'sunday':''; html+=`<th class="${cls}">${dayNames[d]||d.substring(0,3)}</th>`; });
-        html+='</tr></thead><tbody>';
+        html+='<tr></thead><tbody>';
         for(let p of periodsToUse){
             let isBreak = p.type==='break', isLunch = p.type==='lunch';
             let rowBg = isBreak?'#fff8e1':isLunch?'#fce4ec':'';
@@ -825,7 +825,7 @@
             }
             html+=`<\/tr>`;
         }
-        html+=`</tbody></table>`;
+        html+=`</tbody></td>`;
         document.getElementById('timetable-container').innerHTML = html;
         updateTimetableHeader();
         document.getElementById('teacher-class-info').innerHTML = '';
@@ -859,12 +859,12 @@
     }
     function printTimetable(withoutTeacherNames,layout){ alert("Print ready - use browser print"); window.print(); }
     
-    // Teacher CRUD (same as before, shortened)
+    // Teacher CRUD (abbreviated but functional)
     function loadTeacherForEdit(){let id=document.getElementById('edit-teacher-select').value;if(!id)return;let t=teachers.find(x=>x.id==parseInt(id));if(t){document.getElementById('teacher-name').value=t.name;document.getElementById('teacher-color').value=t.color;document.getElementById('teacher-name').setAttribute('data-edit-id',t.id);document.querySelectorAll('#teacher-subjects-list input').forEach(cb=>{cb.checked=t.subjectIds?.includes(parseInt(cb.value));});updateTeacherAvailableList(t.id);}}
-    function saveTeacher(){let name=document.getElementById('teacher-name').value,color=document.getElementById('teacher-color').value,subs=Array.from(document.querySelectorAll('#teacher-subjects-list input:checked')).map(cb=>parseInt(cb.value)),editId=document.getElementById('teacher-name').getAttribute('data-edit-id');if(!name){showToast("Enter name",true);return;}if(editId){let idx=teachers.findIndex(t=>t.id==parseInt(editId));if(idx!==-1){teachers[idx]={...teachers[idx],name,color,subjectIds:subs};showToast("Updated");}}else{teachers.push({id:Date.now(),name,color,subjectIds:subs,availableTimes:[]});showToast("Added");}saveToLocal();saveToFirestore();updateAll();clearTeacherForm();}
+    function saveTeacher(){let name=document.getElementById('teacher-name').value,color=document.getElementById('teacher-color').value,subs=Array.from(document.querySelectorAll('#teacher-subjects-list input:checked')).map(cb=>parseInt(cb.value)),editId=document.getElementById('teacher-name').getAttribute('data-edit-id');if(!name){showToast("Enter name",true);return;}if(editId){let idx=teachers.findIndex(t=>t.id==parseInt(editId));if(idx!==-1){teachers[idx]={...teachers[idx],name,color,subjectIds:subs};showToast("Updated");}}else{teachers.push({id:Date.now(),name,color,subjectIds:subs,availableTimes:[]});showToast("Added");}saveToLocal();forceCloudSync();updateAll();clearTeacherForm();}
     function clearTeacherForm(){document.getElementById('teacher-name').value='';document.getElementById('teacher-color').value='#2196f3';document.getElementById('teacher-name').removeAttribute('data-edit-id');document.querySelectorAll('#teacher-subjects-list input').forEach(cb=>cb.checked=false);document.getElementById('teacher-available-list').innerHTML='';document.getElementById('edit-teacher-select').value='';}
-    function addAvailableTimeMulti(){let editId=document.getElementById('teacher-name').getAttribute('data-edit-id');if(!editId){showToast("Save teacher first","warning");return;}let period=document.getElementById('avail-period').value,type=document.getElementById('avail-type').value,days=Array.from(document.querySelectorAll('#avail-multi-day input:checked')).map(cb=>cb.value);if(days.length===0){showToast("Select days",true);return;}let t=teachers.find(x=>x.id==parseInt(editId));if(t){if(!t.availableTimes)t.availableTimes=[];for(let d of days){if(!t.availableTimes.find(at=>at.day===d&&at.period===period))t.availableTimes.push({day:d,period,type});}saveToLocal();saveToFirestore();updateTeacherAvailableList(t.id);showToast("Added");}}
-    function removeAvailableTime(tid,idx){let t=teachers.find(x=>x.id==tid);if(t){t.availableTimes.splice(idx,1);saveToLocal();saveToFirestore();updateTeacherAvailableList(tid);}}
+    function addAvailableTimeMulti(){let editId=document.getElementById('teacher-name').getAttribute('data-edit-id');if(!editId){showToast("Save teacher first","warning");return;}let period=document.getElementById('avail-period').value,type=document.getElementById('avail-type').value,days=Array.from(document.querySelectorAll('#avail-multi-day input:checked')).map(cb=>cb.value);if(days.length===0){showToast("Select days",true);return;}let t=teachers.find(x=>x.id==parseInt(editId));if(t){if(!t.availableTimes)t.availableTimes=[];for(let d of days){if(!t.availableTimes.find(at=>at.day===d&&at.period===period))t.availableTimes.push({day:d,period,type});}saveToLocal();forceCloudSync();updateTeacherAvailableList(t.id);showToast("Added");}}
+    function removeAvailableTime(tid,idx){let t=teachers.find(x=>x.id==tid);if(t){t.availableTimes.splice(idx,1);saveToLocal();forceCloudSync();updateTeacherAvailableList(tid);}}
     function updateTeacherAvailableList(tid){let t=teachers.find(x=>x.id==tid),c=document.getElementById('teacher-available-list');if(!t||!t.availableTimes||!t.availableTimes.length){c.innerHTML='<span>No rules (all available)</span>';return;}c.innerHTML=t.availableTimes.map((at,idx)=>`<div class="avail-time-item"><span>${at.day} - ${at.period} ${at.type==='available'?'✅':'❌'}</span><button onclick="removeAvailableTime(${tid},${idx})" class="btn-sm btn-danger">X</button></div>`).join('');}
     function getAvailabilityWarning(tid,day,period){let t=teachers.find(x=>x.id==tid);if(!t||!t.availableTimes)return null;let rule=t.availableTimes.find(at=>at.day===day&&at.period===period);return rule&&rule.type==='not-available'?'⚠️ Teacher not available!':null;}
     
@@ -899,7 +899,7 @@
             btn.textContent = 'Add Subject';
             btn.setAttribute('onclick', 'addSubject()');
             clearSubjectForm();
-            saveToLocal(); saveToFirestore(); updateAll();
+            saveToLocal(); forceCloudSync(); updateAll();
         } else { showToast("Error: subject not found", "error"); }
     }
     function addSubject(){
@@ -911,7 +911,7 @@
         if(!code) code = name.substring(0,3).toUpperCase();
         if(color === '#2196f3') color = randomColor();
         subjects.push({id:Date.now(), name, code, color, portions});
-        saveToLocal(); saveToFirestore(); updateAll();
+        saveToLocal(); forceCloudSync(); updateAll();
         clearSubjectForm();
         showToast("Subject added");
     }
@@ -928,45 +928,54 @@
     function deleteSubject(i){
         if(confirm("Delete subject? This will affect schedules.")){
             subjects.splice(i,1);
-            saveToLocal(); saveToFirestore(); updateAll();
+            saveToLocal(); forceCloudSync(); updateAll();
         }
     }
     function quickSubject(n){
         if(!subjects.find(s=>s.name===n)){
             subjects.push({id:Date.now(), name:n, code:n.substring(0,3).toUpperCase(), color:randomColor(), portions:[]});
-            saveToLocal(); saveToFirestore(); updateAll();
+            saveToLocal(); forceCloudSync(); updateAll();
         }
     }
     
     // Global Periods
-    function addGlobalPeriod(){let name=document.getElementById('global-period-name').value.trim(),start=document.getElementById('global-period-start').value,end=document.getElementById('global-period-end').value,type=document.getElementById('global-period-type').value;if(!name||!start||!end){showToast("Fill all",true);return;}globalPeriods.push({name,start,end,type});saveToLocal();saveToFirestore();updateGlobalPeriodsList();renderTimetable();}
-    function deleteGlobalPeriod(idx){globalPeriods.splice(idx,1);saveToLocal();saveToFirestore();updateGlobalPeriodsList();renderTimetable();}
-    function resetGlobalPeriods(){globalPeriods = generateDefaultGlobalPeriods(); saveToLocal(); saveToFirestore(); updateGlobalPeriodsList(); renderTimetable(); showToast("Reset to 20 global periods");}
+    function addGlobalPeriod(){let name=document.getElementById('global-period-name').value.trim(),start=document.getElementById('global-period-start').value,end=document.getElementById('global-period-end').value,type=document.getElementById('global-period-type').value;if(!name||!start||!end){showToast("Fill all",true);return;}globalPeriods.push({name,start,end,type});saveToLocal();forceCloudSync();updateGlobalPeriodsList();renderTimetable();}
+    function deleteGlobalPeriod(idx){globalPeriods.splice(idx,1);saveToLocal();forceCloudSync();updateGlobalPeriodsList();renderTimetable();}
+    function resetGlobalPeriods(){globalPeriods = [
+        { name:"Period 1", start:"08:00", end:"09:00", type:"class" },
+        { name:"Period 2", start:"09:00", end:"10:00", type:"class" },
+        { name:"Period 3", start:"10:00", end:"11:00", type:"class" },
+        { name:"Break", start:"11:00", end:"11:15", type:"break" },
+        { name:"Period 4", start:"11:15", end:"12:15", type:"class" },
+        { name:"Lunch", start:"12:15", end:"13:15", type:"lunch" },
+        { name:"Period 5", start:"13:15", end:"14:15", type:"class" },
+        { name:"Period 6", start:"14:15", end:"15:15", type:"class" }
+    ]; saveToLocal(); forceCloudSync(); updateGlobalPeriodsList(); renderTimetable(); showToast("Reset default periods");}
     function updateGlobalPeriodsList(){let cont=document.getElementById('global-periods-list');if(cont)cont.innerHTML=globalPeriods.map((p,i)=>`<div class="global-period-item"><span><strong>${p.name}</strong> ${p.start}-${p.end} ${p.type}</span><button onclick="deleteGlobalPeriod(${i})" class="btn-sm btn-danger">X</button></div>`).join('');let avail=document.getElementById('avail-period');if(avail)avail.innerHTML=globalPeriods.map(p=>`<option value="${p.name}">${p.name} (${p.start}-${p.end})</option>`).join('');}
     
     // Classes, Periods, etc.
-    function addClass(){let n=document.getElementById('class-name').value,s=document.getElementById('section-name').value;if(!n||!s){showToast("Both required",true);return;}classes.push({id:Date.now(),name:n,section:s});saveToLocal();saveToFirestore();updateAll();document.getElementById('class-name').value='';document.getElementById('section-name').value='';}
-    function quickAdd(n,s){if(!classes.find(c=>c.name===n&&c.section===s)){classes.push({id:Date.now(),name:n,section:s});saveToLocal();saveToFirestore();updateAll();}}
-    function deleteClass(i){if(confirm("Delete?")){classes.splice(i,1);saveToLocal();saveToFirestore();updateAll();}}
-    function deleteTeacher(i){if(confirm("Delete?")){teachers.splice(i,1);saveToLocal();saveToFirestore();updateAll();}}
-    function addHoliday(){let d=document.getElementById('holiday-date').value,n=document.getElementById('holiday-name').value;if(!d||!n){showToast("Both",true);return;}holidays.push({date:d,name:n});saveToLocal();saveToFirestore();updateAll();document.getElementById('holiday-date').value='';document.getElementById('holiday-name').value='';}
-    function deleteHoliday(i){holidays.splice(i,1);saveToLocal();saveToFirestore();updateAll();}
-    function addDay(){let nd=document.getElementById('new-day').value.trim();if(!nd){showToast("Enter name",true);return;}if(customDays.includes(nd)){showToast("Exists",true);return;}customDays.push(nd);saveToLocal();saveToFirestore();updateAll();document.getElementById('new-day').value='';}
-    function deleteDay(i){if(customDays.length<=1){showToast("Cannot delete last day",true);return;}let d=customDays[i];customDays.splice(i,1);schedules=schedules.filter(s=>s.day!==d);saveToLocal();saveToFirestore();updateAll();}
-    function resetDays(){customDays=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];schedules=schedules.filter(s=>customDays.includes(s.day));saveToLocal();saveToFirestore();updateAll();}
+    function addClass(){let n=document.getElementById('class-name').value,s=document.getElementById('section-name').value;if(!n||!s){showToast("Both required",true);return;}classes.push({id:Date.now(),name:n,section:s});saveToLocal();forceCloudSync();updateAll();document.getElementById('class-name').value='';document.getElementById('section-name').value='';}
+    function quickAdd(n,s){if(!classes.find(c=>c.name===n&&c.section===s)){classes.push({id:Date.now(),name:n,section:s});saveToLocal();forceCloudSync();updateAll();}}
+    function deleteClass(i){if(confirm("Delete?")){classes.splice(i,1);saveToLocal();forceCloudSync();updateAll();}}
+    function deleteTeacher(i){if(confirm("Delete?")){teachers.splice(i,1);saveToLocal();forceCloudSync();updateAll();}}
+    function addHoliday(){let d=document.getElementById('holiday-date').value,n=document.getElementById('holiday-name').value;if(!d||!n){showToast("Both",true);return;}holidays.push({date:d,name:n});saveToLocal();forceCloudSync();updateAll();document.getElementById('holiday-date').value='';document.getElementById('holiday-name').value='';}
+    function deleteHoliday(i){holidays.splice(i,1);saveToLocal();forceCloudSync();updateAll();}
+    function addDay(){let nd=document.getElementById('new-day').value.trim();if(!nd){showToast("Enter name",true);return;}if(customDays.includes(nd)){showToast("Exists",true);return;}customDays.push(nd);saveToLocal();forceCloudSync();updateAll();document.getElementById('new-day').value='';}
+    function deleteDay(i){if(customDays.length<=1){showToast("Cannot delete last day",true);return;}let d=customDays[i];customDays.splice(i,1);schedules=schedules.filter(s=>s.day!==d);saveToLocal();forceCloudSync();updateAll();}
+    function resetDays(){customDays=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];schedules=schedules.filter(s=>customDays.includes(s.day));saveToLocal();forceCloudSync();updateAll();}
     function loadPeriods(){let cid=document.getElementById('period-class-select').value;if(!cid){document.getElementById('periods-list').innerHTML='<p>Select class</p>';return;}let ps=getPeriodsForClass(parseInt(cid));let cont=document.getElementById('periods-list');cont.innerHTML=ps.map((p,i)=>`<div style="display:flex;gap:6px;margin:4px 0;flex-wrap:wrap;"><input class="p-name-${i}" value="${p.name}" style="width:90px"><input type="time" class="p-start-${i}" value="${p.start}" style="width:80px"><input type="time" class="p-end-${i}" value="${p.end}" style="width:80px"><select class="p-type-${i}"><option ${p.type==='class'?'selected':''}>class</option><option ${p.type==='break'?'selected':''}>break</option><option ${p.type==='lunch'?'selected':''}>lunch</option><option ${p.type==='duty'?'selected':''}>duty</option></select><button onclick="removePeriodRow(${i})" class="btn-sm btn-danger">X</button></div>`).join('');let cloneSel=document.getElementById('clone-from-class');cloneSel.innerHTML='<option>-- Source --</option>'+classes.filter(c=>c.id!=cid).map(c=>`<option value="${c.id}">${c.name}-${c.section}</option>`).join('');}
     function addPeriodRow(){let cid=document.getElementById('period-class-select').value;if(!cid){showToast("Select class",true);return;}if(!classPeriods[cid])classPeriods[cid]=getPeriodsForClass(cid);classPeriods[cid].push({name:"New Period",start:"09:00",end:"10:00",type:"class"});loadPeriods();}
     function removePeriodRow(i){let cid=document.getElementById('period-class-select').value;if(classPeriods[cid])classPeriods[cid].splice(i,1);loadPeriods();}
-    function savePeriods(){let cid=document.getElementById('period-class-select').value;if(!cid)return;let ps=[];document.querySelectorAll('#periods-list > div').forEach((div,i)=>{ps.push({name:document.querySelector(`.p-name-${i}`).value,start:document.querySelector(`.p-start-${i}`).value,end:document.querySelector(`.p-end-${i}`).value,type:document.querySelector(`.p-type-${i}`).value});});classPeriods[cid]=ps;schedules.forEach(s=>{if(s.classId==cid){let p=ps.find(p=>p.name===s.periodName);if(p){s.startTime=p.start;s.endTime=p.end;}}});saveToLocal();saveToFirestore();updateAll();showToast("Periods saved");}
-    function clonePeriods(){let src=document.getElementById('clone-from-class').value,tgt=document.getElementById('period-class-select').value;if(!src||!tgt){showToast("Select both",true);return;}classPeriods[tgt]=JSON.parse(JSON.stringify(getPeriodsForClass(parseInt(src))));saveToLocal();saveToFirestore();loadPeriods();showToast("Cloned");}
+    function savePeriods(){let cid=document.getElementById('period-class-select').value;if(!cid)return;let ps=[];document.querySelectorAll('#periods-list > div').forEach((div,i)=>{ps.push({name:document.querySelector(`.p-name-${i}`).value,start:document.querySelector(`.p-start-${i}`).value,end:document.querySelector(`.p-end-${i}`).value,type:document.querySelector(`.p-type-${i}`).value});});classPeriods[cid]=ps;schedules.forEach(s=>{if(s.classId==cid){let p=ps.find(p=>p.name===s.periodName);if(p){s.startTime=p.start;s.endTime=p.end;}}});saveToLocal();forceCloudSync();updateAll();showToast("Periods saved");}
+    function clonePeriods(){let src=document.getElementById('clone-from-class').value,tgt=document.getElementById('period-class-select').value;if(!src||!tgt){showToast("Select both",true);return;}classPeriods[tgt]=JSON.parse(JSON.stringify(getPeriodsForClass(parseInt(src))));saveToLocal();forceCloudSync();loadPeriods();showToast("Cloned");}
     
-    // Schedule modal (unchanged)
+    // Schedule modal (complete)
     function openAddModal(day,periodName,classId){modalContext={day,periodName,classId,editIndex:-1};document.getElementById('modal-edit-index').value=-1;document.getElementById('modal-delete-btn').style.display='none';document.getElementById('modal-title').textContent='Add Schedule';let tsel=document.getElementById('modal-teacher');tsel.innerHTML='<option value="">-- Select --</option>'+teachers.map(t=>`<option value="${t.id}">${t.name}</option>`).join('');document.getElementById('modal-subject-group').style.display='block';document.getElementById('modal-portion-group').style.display='none';document.getElementById('modal-warning').innerHTML='';document.getElementById('schedule-modal').classList.add('active');updateModalFields();}
     function openEditModal(schedule,index){modalContext={day:schedule.day,periodName:schedule.periodName,classId:schedule.classId,editIndex:index};document.getElementById('modal-edit-index').value=index;document.getElementById('modal-delete-btn').style.display='block';document.getElementById('modal-title').textContent='Edit Schedule';let tsel=document.getElementById('modal-teacher');tsel.innerHTML='<option value="">-- Select --</option>'+teachers.map(t=>`<option value="${t.id}">${t.name}</option>`).join('');tsel.value=schedule.teacher;let subSel=document.getElementById('modal-subject');subSel.innerHTML=subjects.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');subSel.value=schedule.subject;document.getElementById('modal-type').value=schedule.type;document.getElementById('schedule-modal').classList.add('active');updateModalFields();updatePortionDropdown();if(schedule.portion){setTimeout(()=>{let p=document.getElementById('modal-portion');if(p)p.value=schedule.portion;},100);}}
     function updateModalFields(){let tid=document.getElementById('modal-teacher').value;let warn=document.getElementById('modal-warning');if(tid&&modalContext.day&&modalContext.periodName){let w=getAvailabilityWarning(parseInt(tid),modalContext.day,modalContext.periodName);warn.innerHTML=w||'';}if(!tid)return;let t=teachers.find(x=>x.id==parseInt(tid));if(t&&t.subjectIds){let teacherSubjects=subjects.filter(s=>t.subjectIds.includes(s.id));let subSel=document.getElementById('modal-subject');subSel.innerHTML=teacherSubjects.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');if(teacherSubjects.length===1){document.getElementById('modal-subject-group').style.display='none';subSel.value=teacherSubjects[0].id;updatePortionDropdown();}else{document.getElementById('modal-subject-group').style.display='block';}}}
     function updatePortionDropdown(){let subId=document.getElementById('modal-subject').value;if(!subId)return;let sub=subjects.find(s=>s.id==parseInt(subId));let portionGroup=document.getElementById('modal-portion-group');if(sub&&sub.portions&&sub.portions.length>0){portionGroup.style.display='block';let portionSel=document.getElementById('modal-portion');portionSel.innerHTML=sub.portions.map(p=>`<option value="${p}">${p}</option>`).join('');}else{portionGroup.style.display='none';}}
-    function deleteCurrentSchedule(){let idx=parseInt(document.getElementById('modal-edit-index').value);if(idx>=0&&idx<schedules.length){if(confirm("Delete?")){schedules.splice(idx,1);saveToLocal();saveToFirestore();updateAll();closeModal();showToast("Deleted");}}}
-    function saveSchedule(){let tid=document.getElementById('modal-teacher').value;if(!tid){showToast("Select teacher",true);return;}let warn=getAvailabilityWarning(parseInt(tid),modalContext.day,modalContext.periodName);if(warn&&!confirm(warn+"\nContinue?"))return;let t=teachers.find(x=>x.id==parseInt(tid));let subId=document.getElementById('modal-subject').value;if(!subId&&t.subjectIds?.length===1)subId=t.subjectIds[0];if(!subId){showToast("Select subject",true);return;}let portion=null;if(document.getElementById('modal-portion-group').style.display!=='none')portion=document.getElementById('modal-portion').value;let type=document.getElementById('modal-type').value;let periods=getPeriodsForClass(modalContext.classId);let period=periods.find(p=>p.name===modalContext.periodName);if(!period){showToast("Period error",true);return;}let editIdx=parseInt(document.getElementById('modal-edit-index').value);if(editIdx>=0&&editIdx<schedules.length){schedules[editIdx]={...schedules[editIdx],teacher:parseInt(tid),subject:parseInt(subId),portion,type,startTime:period.start,endTime:period.end};showToast("Updated");}else{if(schedules.find(s=>s.classId==modalContext.classId&&s.day===modalContext.day&&s.periodName===modalContext.periodName)){showToast("Slot already filled",true);return;}schedules.push({teacher:parseInt(tid),classId:modalContext.classId,subject:parseInt(subId),portion,day:modalContext.day,periodName:modalContext.periodName,startTime:period.start,endTime:period.end,type});showToast("Added");}saveToLocal();saveToFirestore();updateAll();closeModal();}
+    function deleteCurrentSchedule(){let idx=parseInt(document.getElementById('modal-edit-index').value);if(idx>=0&&idx<schedules.length){if(confirm("Delete?")){schedules.splice(idx,1);saveToLocal();forceCloudSync();updateAll();closeModal();showToast("Deleted");}}}
+    function saveSchedule(){let tid=document.getElementById('modal-teacher').value;if(!tid){showToast("Select teacher",true);return;}let warn=getAvailabilityWarning(parseInt(tid),modalContext.day,modalContext.periodName);if(warn&&!confirm(warn+"\nContinue?"))return;let t=teachers.find(x=>x.id==parseInt(tid));let subId=document.getElementById('modal-subject').value;if(!subId&&t.subjectIds?.length===1)subId=t.subjectIds[0];if(!subId){showToast("Select subject",true);return;}let portion=null;if(document.getElementById('modal-portion-group').style.display!=='none')portion=document.getElementById('modal-portion').value;let type=document.getElementById('modal-type').value;let periods=getPeriodsForClass(modalContext.classId);let period=periods.find(p=>p.name===modalContext.periodName);if(!period){showToast("Period error",true);return;}let editIdx=parseInt(document.getElementById('modal-edit-index').value);if(editIdx>=0&&editIdx<schedules.length){schedules[editIdx]={...schedules[editIdx],teacher:parseInt(tid),subject:parseInt(subId),portion,type,startTime:period.start,endTime:period.end};showToast("Updated");}else{if(schedules.find(s=>s.classId==modalContext.classId&&s.day===modalContext.day&&s.periodName===modalContext.periodName)){showToast("Slot already filled",true);return;}schedules.push({teacher:parseInt(tid),classId:modalContext.classId,subject:parseInt(subId),portion,day:modalContext.day,periodName:modalContext.periodName,startTime:period.start,endTime:period.end,type});showToast("Added");}saveToLocal();forceCloudSync();updateAll();closeModal();}
     function closeModal(){document.getElementById('schedule-modal').classList.remove('active');}
     
     // UI update
@@ -985,7 +994,7 @@
     function updateAll(){updateLists();updateDashboard();renderTimetable();updateTimetableHeader();if(document.getElementById('period-class-select').value)loadPeriods();}
     function switchTab(t){document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));document.querySelectorAll('.tab').forEach(btn=>btn.classList.remove('active'));document.getElementById(`${t}-content`).classList.add('active');event.target.classList.add('active');if(t==='dashboard')updateDashboard();if(t==='timetable')renderTimetable();if(t==='periods'&&document.getElementById('period-class-select').value)loadPeriods();if(t==='teachers')updateLists();if(t==='settings')updateGlobalPeriodsList();}
     function exportData(){let a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify({teachers,classes,subjects,schedules,holidays,classPeriods,customDays,schoolInfo,globalPeriods})]));a.download=`backup_${Date.now()}.json`;a.click();showToast("Exported");}
-    function importData(){document.getElementById('import-file').click();document.getElementById('import-file').onchange=e=>{let f=e.target.files[0],r=new FileReader();r.onload=ev=>{let d=JSON.parse(ev.target.result);teachers=d.teachers||[];classes=d.classes||[];subjects=d.subjects||[];schedules=d.schedules||[];holidays=d.holidays||[];classPeriods=d.classPeriods||{};customDays=d.customDays||['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];schoolInfo=d.schoolInfo||{name:"Shining Stars - Ma Thwe Private High School",year:"2026-2027",phone:"09-123456789",logo:null};if(d.globalPeriods)globalPeriods=d.globalPeriods;updateLogoPreview();saveToLocal();saveToFirestore();updateAll();showToast("Imported");};r.readAsText(f);};}
+    function importData(){document.getElementById('import-file').click();document.getElementById('import-file').onchange=e=>{let f=e.target.files[0],r=new FileReader();r.onload=ev=>{let d=JSON.parse(ev.target.result);teachers=d.teachers||[];classes=d.classes||[];subjects=d.subjects||[];schedules=d.schedules||[];holidays=d.holidays||[];classPeriods=d.classPeriods||{};customDays=d.customDays||['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];schoolInfo=d.schoolInfo||{name:"Shining Stars - Ma Thwe Private High School",year:"2026-2027",phone:"09-123456789",logo:null};if(d.globalPeriods)globalPeriods=d.globalPeriods;updateLogoPreview();saveToLocal();forceCloudSync();updateAll();showToast("Imported");};r.readAsText(f);};}
     function autoCode(){let n=document.getElementById('subject-name').value;if(n)document.getElementById('subject-code').value=n.substring(0,3).toUpperCase();}
     
     // Network listeners
@@ -995,13 +1004,13 @@
     firebase.auth().onAuthStateChanged(async (user) => {
         if(user){ 
             currentUser=user; 
-            updateSyncStatusDisplay('🔄 Loading cloud...', 'syncing', lastCloudSyncTime);
-            let hasLocal=loadFromLocal(); 
-            let cloudLoaded = await loadFromCloudAuto(); 
-            if(!cloudLoaded && !hasLocal){
-                showToast("No data found. Add new data and sync.","warning");
+            updateSyncStatusDisplay('🔄 Authenticated', 'syncing', lastCloudSyncTime);
+            let hasLocal = loadFromLocal(); 
+            if(!hasLocal){
+                showToast("No local data. You can start fresh or load from cloud.","warning");
             }
             updateAll(); 
+            manualRetrySync(); // auto compare
         } else { 
             firebase.auth().signInAnonymously().catch(e=>{ 
                 updateSyncStatusDisplay('⚠️ Offline mode', 'offline', lastCloudSyncTime);
