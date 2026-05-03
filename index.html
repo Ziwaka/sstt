@@ -52,7 +52,6 @@
         .schedule-card.break { background: #FFE082; border-left-color: #E65100; color: #4a2900; }
         .schedule-card.lunch { background: #F48FB1; border-left-color: #880E4F; color: #3b0020; }
         .schedule-card.duty { background: #A5D6A7; border-left-color: #1B5E20; color: #0a2e0f; }
-        /* row-level bg for break/lunch in class view */
         tr.break-row > td { background: #FFD54F !important; }
         tr.lunch-row > td { background: #F06292 !important; color: white; }
         .schedule-card strong { font-size: 11px; display: block; }
@@ -115,6 +114,16 @@
         .custom-filter-checkboxes label { font-size: 11px; display: flex; align-items: center; gap: 3px; font-weight: normal; margin: 0; cursor: pointer; }
         .custom-filter-checkboxes input { width: auto; }
         .custom-filter-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; }
+        /* ── Dashboard stat pills ── */
+        .dash-pills { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+        .dash-pill { background: #f0f4ff; border: 1px solid #d0d8f0; border-radius: 10px; padding: 8px 14px; }
+        .dash-pill .pill-label { font-size: 10px; color: #666; }
+        .dash-pill .pill-value { font-size: 20px; font-weight: bold; color: #667eea; }
+        /* ── Class-teacher card ── */
+        .class-teacher-card { border: 1px solid #e0e0e0; border-radius: 8px; margin-bottom: 10px; overflow: hidden; }
+        .class-teacher-header { background: #f0f4ff; padding: 7px 12px; display: flex; justify-content: space-between; align-items: center; }
+        .class-teacher-header strong { font-size: 13px; color: #333; }
+        .class-count-badge { background: #667eea22; color: #4a35b0; font-size: 11px; padding: 2px 10px; border-radius: 10px; font-weight: 600; }
         @media (max-width: 768px) {
             body { padding: 0; }
             .container { border-radius: 0; }
@@ -210,7 +219,6 @@
                     <label><input type="radio" name="viewType" value="custom" onchange="changeViewType('custom')"> 🎯 Custom</label>
                 </div>
                 <div class="form-group" id="single-select-group"><label id="select-label">Select Teacher</label><select id="view-select" onchange="renderTimetable()"></select></div>
-                <!-- Custom filter UI -->
                 <div class="custom-filter-ui" id="custom-filter-ui">
                     <div class="custom-filter-grid">
                         <div>
@@ -388,7 +396,6 @@
         messagingSenderId: "673781213070",
         appId: "1:673781213070:web:b5b557e577e7e51072e6df"
     };
-    // db starts null — will be set only if Firebase loads successfully
     let db = null;
 
     // ======================== DATA ========================
@@ -431,7 +438,6 @@
     function saveToLocal(){ localStorage.setItem('tm_data',JSON.stringify({teachers,classes,subjects,schedules,holidays,classPeriods,customDays,schoolInfo,globalPeriods,teacherOrder,_updated:Date.now(),_lastCloudSync:lastCloudSyncTime})); }
     function loadFromLocal(){ let d=localStorage.getItem('tm_data'); if(d){ let p=JSON.parse(d); teachers=p.teachers||[]; classes=p.classes||[]; subjects=p.subjects||[]; schedules=p.schedules||[]; holidays=p.holidays||[]; classPeriods=p.classPeriods||{}; customDays=p.customDays||['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']; if(p.schoolInfo) schoolInfo=p.schoolInfo; if(p.globalPeriods) globalPeriods=p.globalPeriods; if(p.teacherOrder) teacherOrder=p.teacherOrder; if(p._lastCloudSync) lastCloudSyncTime=p._lastCloudSync; updateLogoPreview(); updateSchoolInfoForm(); updateSyncStatusDisplay('💾 Local','local',lastCloudSyncTime); return true; } return false; }
 
-    // ── Sync lock + debounce to prevent concurrent Firestore writes ──
     let _syncLocked = false;
     let _syncTimer  = null;
     function scheduleCloudSync(){
@@ -460,13 +466,11 @@
             updateSyncStatusDisplay('⚠️ Upload failed','offline',lastCloudSyncTime);
         } finally { _syncLocked = false; }
     }
-    // Public: called everywhere — debounced so rapid saves don't flood Firestore
     function forceCloudSync(){
         if(!currentUser){ showToast("Wait for auth","warning"); return; }
         if(!navigator.onLine){ showToast("No internet, saved locally","warning"); saveToLocal(); return; }
         scheduleCloudSync();
     }
-    // Manual "Upload now" button — bypasses debounce
     async function forceCloudSyncNow(){
         if(!currentUser){ showToast("Wait for auth","warning"); return; }
         if(!navigator.onLine){ showToast("No internet, saved locally","warning"); saveToLocal(); return; }
@@ -487,7 +491,6 @@
     function updateSchoolInfoForm(){ let n=document.getElementById('school-name'),y=document.getElementById('academic-year'),p=document.getElementById('school-phone'); if(n) n.value=schoolInfo.name; if(y) y.value=schoolInfo.year; if(p) p.value=schoolInfo.phone; }
 
     // ======================== DASHBOARD ========================
-    // Helper: toggle class detail rows
     function toggleRows(cls, btn){
         let rows = document.querySelectorAll('tr.detail-'+cls);
         let isHidden = rows.length > 0 && rows[0].style.display === 'none';
@@ -503,7 +506,6 @@
         let TYPE_BG    = { class:'#e3f2fd', duty:'#fff3e0', break:'#f3e5f5', lunch:'#fce4ec' };
         let dayShort   = { Monday:'တနင်', Tuesday:'အင်္ဂါ', Wednesday:'ဗုဒ္ဓ', Thursday:'ကြာ', Friday:'သောကြာ', Saturday:'စနေ', Sunday:'တနင်္ဂနွေ' };
 
-        // ── Process schedules ─────────────────────────────────
         schedules.forEach(s => {
             if (!TYPES.includes(s.type)) return;
             if (!teachers.some(t => t.id == s.teacher)) return;
@@ -549,7 +551,23 @@
         let orderedTeachers = getOrderedTeachers();
         let html = '';
 
-        // ── Card 1: Summary Table (Teacher × Class) ───────────
+        // ── Card 0: Overall Stats Pills ──────────────────────
+        let totalTeachersWithSchedule = new Set(schedules.filter(s=>s.type==='class').map(s=>s.teacher)).size;
+        let totalClassesWithSchedule  = new Set(schedules.filter(s=>s.type==='class').map(s=>s.classId)).size;
+        let totalClassPeriods         = schedules.filter(s=>s.type==='class').length;
+        let totalTeachersRegistered   = teachers.length;
+
+        html += '<div class="stat-card">';
+        html += '<div class="stat-header">📊 အကျဉ်းချုပ် စာရင်း</div>';
+        html += '<div class="stat-body">';
+        html += '<div class="dash-pills">';
+        html += '<div class="dash-pill"><div class="pill-label">စုစုပေါင်း ဆရာ/မ (မှတ်ပုံတင်)</div><div class="pill-value">'+totalTeachersRegistered+' ဦး</div></div>';
+        html += '<div class="dash-pill"><div class="pill-label">သင်ကြားနေသော ဆရာ/မ</div><div class="pill-value">'+totalTeachersWithSchedule+' ဦး</div></div>';
+        html += '<div class="dash-pill"><div class="pill-label">သင်ကြားနေသော အတန်း</div><div class="pill-value">'+totalClassesWithSchedule+' တန်း</div></div>';
+        html += '<div class="dash-pill"><div class="pill-label">စုစုပေါင်း သင်ချိန် (Periods)</div><div class="pill-value">'+totalClassPeriods+'</div></div>';
+        html += '</div></div></div>';
+
+        // ── Card 1: Summary Table (Teacher × Class) with Sr. No. ──
         let allClassIds   = [...new Set(schedules.filter(s => s.type === 'class').map(s => s.classId))];
         let allClassNames = allClassIds.map(id => ({ id, name: getClassName(id) })).sort((a,b) => a.name.localeCompare(b.name));
 
@@ -557,16 +575,19 @@
         html += '<div class="stat-header">📋 ဆရာ × အတန်း သင်ချိန် (နာရီ)</div>';
         html += '<div class="stat-body"><div style="overflow-x:auto;">';
         html += '<table class="dashboard-table"><thead><tr>';
-        html += '<th>ဆရာ/မ</th>';
+        html += '<th style="text-align:center;width:36px;">Sr.</th><th>ဆရာ/မ</th>';
         allClassNames.forEach(c => { html += '<th>' + c.name + '</th>'; });
         html += '<th>စုစုပေါင်း</th>';
         html += '</tr></thead><tbody>';
 
+        let srNo = 0;
         for (let t of orderedTeachers) {
             let byType = teacherStats[t.id];
             if (!byType || !byType.class || byType.class.periods === 0) continue;
+            srNo++;
             let tColor = t.color, grandH = 0;
             html += '<tr>';
+            html += '<td style="text-align:center;font-weight:bold;color:#888;">'+srNo+'</td>';
             html += '<td style="font-weight:bold;color:' + tColor + ';">👨‍🏫 ' + escapeHtml(t.name) + '</td>';
             for (let { id, name } of allClassNames) {
                 let h = 0;
@@ -582,9 +603,58 @@
             html += '<td style="text-align:center;font-weight:bold;color:#1565c0;">' + grandH.toFixed(1) + 'h</td>';
             html += '</tr>';
         }
-        html += '</tbody></table></div></div></div>'; // closes stat-body, stat-card
+        html += '</tbody></table></div></div></div>';
 
-        // ── Card 2: Detailed Teacher Cards ────────────────────
+        // ── Card 2: Class × Teachers Detail ──────────────────
+        let classTeacherMap = {};
+        schedules.filter(s => s.type === 'class').forEach(s => {
+            let cid = s.classId, tid = s.teacher;
+            if (!classes.some(c => c.id == cid)) return;
+            if (!teachers.some(t => t.id == tid)) return;
+            if (!classTeacherMap[cid]) classTeacherMap[cid] = {};
+            if (!classTeacherMap[cid][tid]) classTeacherMap[cid][tid] = { subjects: new Set(), periods: 0 };
+            classTeacherMap[cid][tid].periods++;
+            if (s.subject && subjects.some(sub => sub.id == s.subject))
+                classTeacherMap[cid][tid].subjects.add(getSubjectName(s.subject));
+        });
+
+        let sortedClassIds = Object.keys(classTeacherMap).sort((a,b) => getClassName(parseInt(a)).localeCompare(getClassName(parseInt(b))));
+
+        html += '<div class="stat-card">';
+        html += '<div class="stat-header">🏫 အတန်းအလိုက် ဆရာ/မ စာရင်း</div>';
+        html += '<div class="stat-body">';
+
+        let classSr = 0;
+        for (let cid of sortedClassIds) {
+            classSr++;
+            let cName = getClassName(parseInt(cid));
+            let teacherEntries = Object.entries(classTeacherMap[cid]).sort((a,b) => getTeacherName(parseInt(a[0])).localeCompare(getTeacherName(parseInt(b[0]))));
+
+            html += '<div class="class-teacher-card">';
+            html += '<div class="class-teacher-header">';
+            html += '<strong>'+classSr+'. 🏫 '+escapeHtml(cName)+'</strong>';
+            html += '<span class="class-count-badge">ဆရာ/မ '+teacherEntries.length+' ဦး</span>';
+            html += '</div>';
+            html += '<div style="overflow-x:auto;"><table class="dashboard-table"><thead><tr>';
+            html += '<th style="text-align:center;width:36px;">Sr.</th><th>ဆရာ/မ</th><th>ဘာသာရပ်</th><th style="text-align:center;">Periods</th>';
+            html += '</tr></thead><tbody>';
+
+            let tSr = 0;
+            for (let [tid, data] of teacherEntries) {
+                tSr++;
+                let tc = getTeacherColor(parseInt(tid));
+                html += '<tr>';
+                html += '<td style="text-align:center;color:#888;">'+tSr+'</td>';
+                html += '<td style="font-weight:600;color:'+tc+';">👨‍🏫 '+escapeHtml(getTeacherName(parseInt(tid)))+'</td>';
+                html += '<td>'+escapeHtml([...data.subjects].join(', ')||'—')+'</td>';
+                html += '<td style="text-align:center;">'+data.periods+'</td>';
+                html += '</tr>';
+            }
+            html += '</tbody></table></div></div>';
+        }
+        html += '</div></div>';
+
+        // ── Card 3: Detailed Teacher Cards ────────────────────
         html += '<div class="stat-card">';
         html += '<div class="stat-header">👨‍🏫 ဆရာ/မ အသေးစိတ် (နေ့စဉ်၊ အမျိုးအစားအလိုက်)</div>';
         html += '<div class="stat-body">';
@@ -599,12 +669,9 @@
             let classNames = [...new Set(sortedClassDetails.map(d => d.className))].join(', ') || '—';
             let totalP = (byType.class?.periods||0) + (byType.duty?.periods||0) + (byType.break?.periods||0) + (byType.lunch?.periods||0);
             let totalH = (byType.class?.hours||0)   + (byType.duty?.hours||0)   + (byType.break?.hours||0)   + (byType.lunch?.hours||0);
-            let cdId   = 'cd' + t.id; // used as class name for detail rows
+            let cdId   = 'cd' + t.id;
 
-            // outer card
             html += '<div class="teacher-detail-card">';
-
-            // header (toggle)
             html += '<div class="teacher-detail-header" style="background:' + tColor + '18;border-left:4px solid ' + tColor + ';" ';
             html += 'onclick="var b=this.nextElementSibling;b.style.display=b.style.display===\'none\'?\'\':\'none\';this.querySelector(\'.arr\').textContent=b.style.display===\'\'?\'▼\':\'▶\';">';
             html += '<div><span class="arr">▼</span> <strong>' + escapeHtml(t.name) + '</strong><br>';
@@ -612,9 +679,8 @@
             html += '<div>';
             html += '<span style="background:#1565c0;color:white;padding:2px 7px;border-radius:10px;font-size:11px;">' + totalP + ' periods</span> ';
             html += '<span style="background:#2e7d32;color:white;padding:2px 7px;border-radius:10px;font-size:11px;">' + totalH.toFixed(1) + ' hrs</span>';
-            html += '</div></div>'; // end header
+            html += '</div></div>';
 
-            // collapsible body
             html += '<div class="teacher-detail-body"><div style="overflow-x:auto;">';
             html += '<table class="dashboard-table"><thead><tr>';
             html += '<th>အမျိုးအစား</th>';
@@ -637,12 +703,10 @@
                 html += '<td style="text-align:center;">' + ts.periods + '</td>';
                 html += '<td style="text-align:center;">' + ts.hours.toFixed(1) + 'h</td></tr>';
 
-                // Class detail toggle row (no nested tbody — just regular rows with a shared class)
                 if (type === 'class' && sortedClassDetails.length > 0) {
                     html += '<tr style="background:#eef2ff;"><td colspan="' + (customDays.length + 3) + '" style="padding:3px;">';
                     html += '<span onclick="toggleRows(\'' + cdId + '\',this)" style="cursor:pointer;color:#667eea;">▼ အတန်းအလိုက်</span>';
                     html += '</td></tr>';
-                    // Detail rows — each gets the cdId class so toggleRows can find them
                     for (let cd of sortedClassDetails) {
                         html += '<tr class="detail-' + cdId + '" style="display:none;background:#f8f9ff;">';
                         html += '<td style="padding-left:20px;">↳ ' + escapeHtml(cd.className) + '</td>';
@@ -653,7 +717,6 @@
                 }
             }
 
-            // Total row
             html += '<tr class="total-row"><td><strong>စုစုပေါင်း</strong></td>';
             customDays.forEach(d => {
                 let h = 0;
@@ -663,15 +726,14 @@
             html += '<td style="text-align:center;"><strong>' + totalP + '</strong></td>';
             html += '<td style="text-align:center;"><strong>' + totalH.toFixed(1) + 'h</strong></td></tr>';
 
-            html += '</tbody></table></div></div>'; // end body div
-            html += '</div>'; // end teacher-detail-card
+            html += '</tbody></table></div></div>';
+            html += '</div>';
         }
+        html += '</div></div>';
 
-        html += '</div></div>'; // end stat-body, stat-card
-
-        // ── Card 3: Class Statistics ───────────────────────────
+        // ── Card 4: Class Statistics ───────────────────────────
         html += '<div class="stat-card">';
-        html += '<div class="stat-header">🏫 Class Statistics (သင်ချိန်သာ)</div>';
+        html += '<div class="stat-header">📈 Class Statistics (သင်ချိန်သာ)</div>';
         html += '<div class="stat-body"><div style="overflow-x:auto;">';
         html += '<table class="dashboard-table"><thead><tr>';
         html += '<th>အတန်း</th><th>ဘာသာရပ် / ဆရာ</th><th>Periods</th><th>နာရီ</th>';
@@ -687,11 +749,10 @@
             }
             html += '<tr class="total-row"><td colspan="2"><strong>' + escapeHtml(cName) + ' — Total</strong></td><td><strong>' + data.periods + '</strong></td><td><strong>' + data.hours.toFixed(1) + '</strong></td></tr>';
         }
-        html += '</tbody></table></div></div></div>'; // end stat-body, stat-card
+        html += '</tbody></table></div></div></div>';
 
         document.getElementById('dashboard-stats').innerHTML = html;
 
-        // ── Invalid data ───────────────────────────────────────
         let invalid = [];
         schedules.forEach((s, idx) => {
             if (!teachers.some(t => t.id == s.teacher)) invalid.push({type:'Teacher', name:s.teacher, idx});
@@ -940,7 +1001,7 @@
             document.getElementById('printNoTeacherBtn').style.display='inline-block';
             document.getElementById('printNoTeacherVertBtn').style.display='inline-block';
             renderTimetable();
-        } else { // custom
+        } else {
             singleGroup.style.display='none'; customUI.style.display='block';
             document.getElementById('custom-day').innerHTML=customDays.map(d=>'<option>'+d+'</option>').join('');
             document.getElementById('custom-class-checks').innerHTML=classes.map(c=>'<label><input type="checkbox" value="'+c.id+'" checked onchange="renderCustomTimetable()"> '+c.name+'-'+c.section+'</label>').join('');
@@ -950,16 +1011,14 @@
     }
 
     // ======================== CUSTOM TIMETABLE ========================
-    // Each class has its OWN period times → build rows by actual startTime/endTime
     function renderCustomTimetable(){
         let day=document.getElementById('custom-day').value;
         let cids=Array.from(document.querySelectorAll('#custom-class-checks input:checked')).map(cb=>parseInt(cb.value));
         let sids=Array.from(document.querySelectorAll('#custom-subject-checks input:checked')).map(cb=>parseInt(cb.value));
         let types=Array.from(document.querySelectorAll('#custom-type-checks input:checked')).map(cb=>cb.value);
         if(!cids.length){ document.getElementById('timetable-container').innerHTML='<p>Select at least one class</p>'; return; }
-        // Collect unique time slots across all selected classes
-        let timeSlotMap=new Map(); // "HH:MM|HH:MM" -> {start,end}
-        let cellData={};           // "cid|HH:MM|HH:MM" -> [schedules]
+        let timeSlotMap=new Map();
+        let cellData={};
         for(let cid of cids){
             let classScheds=schedules.filter(s=>
                 s.classId===cid && s.day===day && types.includes(s.type) &&
@@ -1063,7 +1122,6 @@
     function resetDays(){ customDays=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']; schedules=schedules.filter(s=>customDays.includes(s.day)); saveToLocal(); forceCloudSync(); updateAll(); }
 
     // ======================== MODAL ========================
-    // FIX: openAddModal — sort subjects by name properly, join to string
     function openAddModal(day, periodName, classId){
         modalContext = { day, periodName, classId, editIndex:-1 };
         document.getElementById('modal-edit-index').value = -1;
@@ -1080,7 +1138,6 @@
         document.getElementById('schedule-modal').classList.add('active');
     }
 
-    // FIX: openEditModal — same sort fix + use data-idx attribute instead of JSON embedding
     function openEditModal(el){
         let idx = parseInt(el.getAttribute('data-idx'));
         if(isNaN(idx) || idx < 0 || idx >= schedules.length){ showToast("Schedule not found","error"); return; }
@@ -1211,7 +1268,6 @@
     window.addEventListener('offline', ()=>{ updateSyncStatusDisplay('⚠️ Offline (local only)','offline',lastCloudSyncTime); showToast("Offline mode","warning"); });
 
     // ======================== FIREBASE SAFE INIT ========================
-    // Called only after DOMContentLoaded — checks if Firebase SDK actually loaded
     function initFirebase() {
         if (typeof firebase === 'undefined') {
             setTimeout(initFirebase, 500);
@@ -1220,9 +1276,6 @@
         try {
             firebase.initializeApp(firebaseConfig);
             db = firebase.firestore();
-            // Disable long-polling persistence to avoid Unexpected state errors
-            // db.settings removed
-
             firebase.auth().onAuthStateChanged(async (user) => {
                 if (user) {
                     currentUser = user;
@@ -1241,17 +1294,13 @@
         }
     }
 
-    // ── App bootstrap ──────────────────────────────────────────
     document.addEventListener('DOMContentLoaded', () => {
-        // Always load local data first — instant display even offline
         loadFromLocal();
         updateAll();
         changeViewType('teacher');
-        // Then attempt Firebase (safe, won't crash if SDK missing)
         initFirebase();
     });
 
-    // Expose globals
     window.switchTab=switchTab; window.addClass=addClass; window.quickAdd=quickAdd;
     window.addSubject=addSubject; window.deleteTeacher=deleteTeacher; window.deleteClass=deleteClass;
     window.deleteSubject=deleteSubject; window.deleteHoliday=deleteHoliday; window.deleteDay=deleteDay;
@@ -1272,7 +1321,6 @@
     window.clearSubjectForm=clearSubjectForm; window.loadPeriods=loadPeriods; window.addPeriodRow=addPeriodRow;
     window.removePeriodRow=removePeriodRow; window.savePeriods=savePeriods; window.clonePeriods=clonePeriods;
     window.deleteInvalidSchedule=deleteInvalidSchedule; window.toggleRows=toggleRows;
-
 </script>
 </body>
 </html>
