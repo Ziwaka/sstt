@@ -351,7 +351,7 @@
                 <button onclick="exportData()">Export</button>
                 <button onclick="importData()">Import</button>
                 <input type="file" id="import-file" style="display:none;">
-                <button onclick="forceCloudSync()" class="btn-success">☁️ Sync to Cloud</button>
+                <button onclick="forceCloudSyncNow()" class="btn-success">☁️ Sync to Cloud</button>
                 <button onclick="loadFromCloudManual(true)" class="btn-warning">📥 Load from Cloud (Overwrite)</button>
                 <button onclick="manualRetrySync()" class="btn-warning">🔄 Check &amp; Sync</button>
             </div>
@@ -379,7 +379,7 @@
 </div>
 
 <script>
-    // ======================== FIREBASE ========================
+    // ======================== FIREBASE CONFIG ========================
     const firebaseConfig = {
         apiKey: "AIzaSyDhdCXEg5xAhPY_0T5WogCwkSb9oCgb6a8",
         authDomain: "ssmt-timetable-manager.firebaseapp.com",
@@ -388,8 +388,8 @@
         messagingSenderId: "673781213070",
         appId: "1:673781213070:web:b5b557e577e7e51072e6df"
     };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
+    // db starts null — will be set only if Firebase loads successfully
+    let db = null;
 
     // ======================== DATA ========================
     let teachers = [], classes = [], subjects = [], schedules = [], holidays = [], classPeriods = {};
@@ -430,10 +430,53 @@
     // ======================== STORAGE ========================
     function saveToLocal(){ localStorage.setItem('tm_data',JSON.stringify({teachers,classes,subjects,schedules,holidays,classPeriods,customDays,schoolInfo,globalPeriods,teacherOrder,_updated:Date.now(),_lastCloudSync:lastCloudSyncTime})); }
     function loadFromLocal(){ let d=localStorage.getItem('tm_data'); if(d){ let p=JSON.parse(d); teachers=p.teachers||[]; classes=p.classes||[]; subjects=p.subjects||[]; schedules=p.schedules||[]; holidays=p.holidays||[]; classPeriods=p.classPeriods||{}; customDays=p.customDays||['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']; if(p.schoolInfo) schoolInfo=p.schoolInfo; if(p.globalPeriods) globalPeriods=p.globalPeriods; if(p.teacherOrder) teacherOrder=p.teacherOrder; if(p._lastCloudSync) lastCloudSyncTime=p._lastCloudSync; updateLogoPreview(); updateSchoolInfoForm(); updateSyncStatusDisplay('💾 Local','local',lastCloudSyncTime); return true; } return false; }
-    async function forceCloudSync(){ if(!currentUser){ showToast("Wait for auth","warning"); return; } if(!navigator.onLine){ showToast("No internet, saved locally","warning"); saveToLocal(); return; } updateSyncStatusDisplay('☁️ Uploading...','syncing',lastCloudSyncTime); try{ await firebase.firestore().enableNetwork(); let now=Date.now(); lastCloudSyncTime=now; await db.collection('school').doc('shared').set({teachers,classes,subjects,schedules,holidays,classPeriods,customDays,schoolInfo,globalPeriods,teacherOrder,updated:firebase.firestore.FieldValue.serverTimestamp(),_lastCloudSync:now}); saveToLocal(); updateSyncStatusDisplay('☁️ Synced','online',now); showToast("Upload complete"); } catch(e){ showToast("Upload failed: "+e.message,"error"); updateSyncStatusDisplay('⚠️ Upload failed','offline',lastCloudSyncTime); } }
-    async function loadFromCloudManual(overwrite=false){ if(!currentUser){ showToast("Wait for auth","warning"); return; } if(!navigator.onLine){ showToast("No internet","error"); return; } updateSyncStatusDisplay('📥 Downloading...','syncing',lastCloudSyncTime); try{ let doc=await db.collection('school').doc('shared').get(); if(doc.exists){ let d=doc.data(); let cloudTs=d.updated?.toMillis()||0; let localRaw=localStorage.getItem('tm_data'); let localTs=localRaw?JSON.parse(localRaw)._updated||0:0; if(overwrite||cloudTs>localTs){ teachers=d.teachers||[]; classes=d.classes||[]; subjects=d.subjects||[]; schedules=d.schedules||[]; holidays=d.holidays||[]; classPeriods=d.classPeriods||{}; customDays=d.customDays||['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']; schoolInfo=d.schoolInfo||schoolInfo; globalPeriods=d.globalPeriods||globalPeriods; teacherOrder=d.teacherOrder||[]; lastCloudSyncTime=cloudTs; updateLogoPreview(); updateSchoolInfoForm(); saveToLocal(); updateAll(); showToast("Cloud data loaded"); updateSyncStatusDisplay('☁️ Loaded','online',lastCloudSyncTime); } else { showToast("Local is newer","warning"); updateSyncStatusDisplay('💾 Local newer','local',lastCloudSyncTime); } } else { showToast("No cloud data","warning"); } } catch(e){ showToast("Download failed: "+e.message,"error"); updateSyncStatusDisplay('⚠️ Failed','offline',lastCloudSyncTime); } }
-    async function manualRetrySync(){ if(!currentUser){ showToast("Wait for auth","warning"); return; } if(!navigator.onLine){ showToast("No internet","error"); return; } updateSyncStatusDisplay('🔄 Checking...','syncing',lastCloudSyncTime); try{ let doc=await db.collection('school').doc('shared').get(); if(doc.exists){ let d=doc.data(); let cloudTs=d.updated?.toMillis()||0; let localRaw=localStorage.getItem('tm_data'); let localTs=localRaw?JSON.parse(localRaw)._updated||0:0; if(cloudTs>localTs){ if(confirm("Cloud is newer. Overwrite local?")){ teachers=d.teachers||[]; classes=d.classes||[]; subjects=d.subjects||[]; schedules=d.schedules||[]; holidays=d.holidays||[]; classPeriods=d.classPeriods||{}; customDays=d.customDays||['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']; schoolInfo=d.schoolInfo||schoolInfo; globalPeriods=d.globalPeriods||globalPeriods; teacherOrder=d.teacherOrder||[]; lastCloudSyncTime=cloudTs; updateLogoPreview(); updateSchoolInfoForm(); saveToLocal(); updateAll(); showToast("Loaded newer cloud data"); updateSyncStatusDisplay('☁️ Loaded newer','online',lastCloudSyncTime); } else updateSyncStatusDisplay('💾 Kept local','local',lastCloudSyncTime); } else if(localTs>cloudTs){ showToast("Local is newer. Use Sync to Cloud.","warning"); updateSyncStatusDisplay('💻 Local newer','local',lastCloudSyncTime); } else { showToast("Already in sync.","success"); updateSyncStatusDisplay('✅ In sync','online',lastCloudSyncTime); } } else { showToast("No cloud data. Use Sync to Cloud.","warning"); } } catch(e){ showToast("Sync failed: "+e.message,"error"); updateSyncStatusDisplay('⚠️ Sync failed','offline',lastCloudSyncTime); } }
-    function globalSave(){ saveToLocal(); forceCloudSync(); }
+
+    // ── Sync lock + debounce to prevent concurrent Firestore writes ──
+    let _syncLocked = false;
+    let _syncTimer  = null;
+    function scheduleCloudSync(){
+        clearTimeout(_syncTimer);
+        _syncTimer = setTimeout(()=>{ _doCloudSync(); }, 400);
+    }
+    async function _doCloudSync(){
+        if(_syncLocked){ scheduleCloudSync(); return; }
+        if(!currentUser||!navigator.onLine) return;
+        if(!db){ console.warn('Firestore not ready'); return; }
+        _syncLocked = true;
+        updateSyncStatusDisplay('☁️ Uploading...','syncing',lastCloudSyncTime);
+        try{
+            let now = Date.now();
+            lastCloudSyncTime = now;
+            await db.collection('school').doc('shared').set({
+                teachers,classes,subjects,schedules,holidays,classPeriods,
+                customDays,schoolInfo,globalPeriods,teacherOrder,
+                updated: firebase.firestore.FieldValue.serverTimestamp(),
+                _lastCloudSync: now
+            });
+            saveToLocal();
+            updateSyncStatusDisplay('☁️ Synced','online',now);
+        } catch(e){
+            console.warn('Cloud sync error:',e.message);
+            updateSyncStatusDisplay('⚠️ Upload failed','offline',lastCloudSyncTime);
+        } finally { _syncLocked = false; }
+    }
+    // Public: called everywhere — debounced so rapid saves don't flood Firestore
+    function forceCloudSync(){
+        if(!currentUser){ showToast("Wait for auth","warning"); return; }
+        if(!navigator.onLine){ showToast("No internet, saved locally","warning"); saveToLocal(); return; }
+        scheduleCloudSync();
+    }
+    // Manual "Upload now" button — bypasses debounce
+    async function forceCloudSyncNow(){
+        if(!currentUser){ showToast("Wait for auth","warning"); return; }
+        if(!navigator.onLine){ showToast("No internet, saved locally","warning"); saveToLocal(); return; }
+        clearTimeout(_syncTimer);
+        await _doCloudSync();
+        showToast("Upload complete");
+    }
+    async function loadFromCloudManual(overwrite=false){ if(!currentUser){ showToast("Wait for auth","warning"); return; } if(!navigator.onLine){ showToast("No internet","error"); return; } if(!db){ showToast("Firebase not ready","warning"); return; } updateSyncStatusDisplay('📥 Downloading...','syncing',lastCloudSyncTime); try{ let doc=await db.collection('school').doc('shared').get(); if(doc.exists){ let d=doc.data(); let cloudTs=d.updated?.toMillis()||0; let localRaw=localStorage.getItem('tm_data'); let localTs=localRaw?JSON.parse(localRaw)._updated||0:0; if(overwrite||cloudTs>localTs){ teachers=d.teachers||[]; classes=d.classes||[]; subjects=d.subjects||[]; schedules=d.schedules||[]; holidays=d.holidays||[]; classPeriods=d.classPeriods||{}; customDays=d.customDays||['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']; schoolInfo=d.schoolInfo||schoolInfo; globalPeriods=d.globalPeriods||globalPeriods; teacherOrder=d.teacherOrder||[]; lastCloudSyncTime=cloudTs; updateLogoPreview(); updateSchoolInfoForm(); saveToLocal(); updateAll(); showToast("Cloud data loaded"); updateSyncStatusDisplay('☁️ Loaded','online',lastCloudSyncTime); } else { showToast("Local is newer","warning"); updateSyncStatusDisplay('💾 Local newer','local',lastCloudSyncTime); } } else { showToast("No cloud data","warning"); } } catch(e){ showToast("Download failed: "+e.message,"error"); updateSyncStatusDisplay('⚠️ Failed','offline',lastCloudSyncTime); } }
+    async function manualRetrySync(){ if(!currentUser){ showToast("Wait for auth","warning"); return; } if(!navigator.onLine){ showToast("No internet","error"); return; } if(!db){ showToast("Firebase not ready","warning"); return; } updateSyncStatusDisplay('🔄 Checking...','syncing',lastCloudSyncTime); try{ let doc=await db.collection('school').doc('shared').get(); if(doc.exists){ let d=doc.data(); let cloudTs=d.updated?.toMillis()||0; let localRaw=localStorage.getItem('tm_data'); let localTs=localRaw?JSON.parse(localRaw)._updated||0:0; if(cloudTs>localTs){ if(confirm("Cloud is newer. Overwrite local?")){ teachers=d.teachers||[]; classes=d.classes||[]; subjects=d.subjects||[]; schedules=d.schedules||[]; holidays=d.holidays||[]; classPeriods=d.classPeriods||{}; customDays=d.customDays||['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']; schoolInfo=d.schoolInfo||schoolInfo; globalPeriods=d.globalPeriods||globalPeriods; teacherOrder=d.teacherOrder||[]; lastCloudSyncTime=cloudTs; updateLogoPreview(); updateSchoolInfoForm(); saveToLocal(); updateAll(); showToast("Loaded newer cloud data"); updateSyncStatusDisplay('☁️ Loaded newer','online',lastCloudSyncTime); } else updateSyncStatusDisplay('💾 Kept local','local',lastCloudSyncTime); } else if(localTs>cloudTs){ showToast("Local is newer. Use Sync to Cloud.","warning"); updateSyncStatusDisplay('💻 Local newer','local',lastCloudSyncTime); } else { showToast("Already in sync.","success"); updateSyncStatusDisplay('✅ In sync','online',lastCloudSyncTime); } } else { showToast("No cloud data. Use Sync to Cloud.","warning"); } } catch(e){ showToast("Sync failed: "+e.message,"error"); updateSyncStatusDisplay('⚠️ Sync failed','offline',lastCloudSyncTime); } }
+    function globalSave(){ saveToLocal(); forceCloudSyncNow().then(()=>showToast("Saved & Uploaded ✓")); }
     function updateSyncStatusDisplay(msg,cls,lastMills){ let status=document.getElementById('sync-status'); let last=document.getElementById('last-sync-info'); status.innerHTML=msg; status.className='sync-status '+cls; if(lastMills){ let d=new Date(lastMills); last.innerHTML='Last cloud sync: '+d.toLocaleString(); } else if(lastCloudSyncTime){ let d=new Date(lastCloudSyncTime); last.innerHTML='Last cloud sync: '+d.toLocaleString(); } else last.innerHTML='Last cloud sync: Never'; }
 
     // ======================== SCHOOL UI ========================
@@ -1164,14 +1207,49 @@
     function importData(){ document.getElementById('import-file').click(); document.getElementById('import-file').onchange=e=>{ let f=e.target.files[0],r=new FileReader(); r.onload=ev=>{ let d=JSON.parse(ev.target.result); teachers=d.teachers||[]; classes=d.classes||[]; subjects=d.subjects||[]; schedules=d.schedules||[]; holidays=d.holidays||[]; classPeriods=d.classPeriods||{}; customDays=d.customDays||['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']; schoolInfo=d.schoolInfo||{name:"Shining Stars - Ma Thwe Private High School",year:"2026-2027",phone:"09-123456789",logo:null}; if(d.globalPeriods) globalPeriods=d.globalPeriods; if(d.teacherOrder) teacherOrder=d.teacherOrder; updateLogoPreview(); saveToLocal(); forceCloudSync(); updateAll(); showToast("Imported"); }; r.readAsText(f); }; }
     function autoCode(){ let n=document.getElementById('subject-name').value; if(n) document.getElementById('subject-code').value=n.substring(0,3).toUpperCase(); }
 
-    window.addEventListener('online', ()=>manualRetrySync());
-    window.addEventListener('offline', ()=>{ updateSyncStatusDisplay('⚠️ Offline (using local)','offline',lastCloudSyncTime); showToast("Offline mode","warning"); });
+    window.addEventListener('online', ()=>{ if(currentUser) manualRetrySync(); });
+    window.addEventListener('offline', ()=>{ updateSyncStatusDisplay('⚠️ Offline (local only)','offline',lastCloudSyncTime); showToast("Offline mode","warning"); });
 
-    firebase.auth().onAuthStateChanged(async (user)=>{
-        if(user){ currentUser=user; updateSyncStatusDisplay('🔄 Authenticated','syncing',lastCloudSyncTime); let hasLocal=loadFromLocal(); if(!hasLocal) showToast("No local data. Start fresh or load from cloud.","warning"); updateAll(); manualRetrySync(); }
-        else { firebase.auth().signInAnonymously().catch(e=>{ updateSyncStatusDisplay('⚠️ Offline mode','offline',lastCloudSyncTime); loadFromLocal(); updateAll(); showToast("Offline mode (anonymous auth failed)","warning"); }); }
+    // ======================== FIREBASE SAFE INIT ========================
+    // Called only after DOMContentLoaded — checks if Firebase SDK actually loaded
+    function initFirebase() {
+        if (typeof firebase === 'undefined') {
+            setTimeout(initFirebase, 500);
+            return;
+        }
+        try {
+            firebase.initializeApp(firebaseConfig);
+            db = firebase.firestore();
+            // Disable long-polling persistence to avoid Unexpected state errors
+            // db.settings removed
+
+            firebase.auth().onAuthStateChanged(async (user) => {
+                if (user) {
+                    currentUser = user;
+                    updateSyncStatusDisplay('🔄 Authenticated','syncing', lastCloudSyncTime);
+                    manualRetrySync();
+                } else {
+                    firebase.auth().signInAnonymously().catch(e => {
+                        console.warn('Anonymous auth failed:', e.message);
+                        updateSyncStatusDisplay('⚠️ Auth failed — local only','offline', lastCloudSyncTime);
+                    });
+                }
+            });
+        } catch(e) {
+            console.warn('Firebase init error:', e.message);
+            updateSyncStatusDisplay('⚠️ Firebase error — local only','offline', null);
+        }
+    }
+
+    // ── App bootstrap ──────────────────────────────────────────
+    document.addEventListener('DOMContentLoaded', () => {
+        // Always load local data first — instant display even offline
+        loadFromLocal();
+        updateAll();
+        changeViewType('teacher');
+        // Then attempt Firebase (safe, won't crash if SDK missing)
+        initFirebase();
     });
-    loadFromLocal();
 
     // Expose globals
     window.switchTab=switchTab; window.addClass=addClass; window.quickAdd=quickAdd;
@@ -1186,7 +1264,7 @@
     window.saveSchoolInfo=saveSchoolInfo; window.uploadLogo=uploadLogo; window.removeLogo=removeLogo;
     window.addGlobalPeriod=addGlobalPeriod; window.deleteGlobalPeriod=deleteGlobalPeriod; window.resetGlobalPeriods=resetGlobalPeriods;
     window.loadFromCloudManual=loadFromCloudManual; window.globalSave=globalSave;
-    window.manualRetrySync=manualRetrySync; window.forceCloudSync=forceCloudSync;
+    window.manualRetrySync=manualRetrySync; window.forceCloudSync=forceCloudSync; window.forceCloudSyncNow=forceCloudSyncNow;
     window.exportData=exportData; window.importData=importData; window.autoCode=autoCode;
     window.addAvailableTimeMulti=addAvailableTimeMulti; window.removeAvailableTime=removeAvailableTime;
     window.saveTeacher=saveTeacher; window.clearTeacherForm=clearTeacherForm; window.loadTeacherForEdit=loadTeacherForEdit;
@@ -1195,7 +1273,6 @@
     window.removePeriodRow=removePeriodRow; window.savePeriods=savePeriods; window.clonePeriods=clonePeriods;
     window.deleteInvalidSchedule=deleteInvalidSchedule; window.toggleRows=toggleRows;
 
-    changeViewType('teacher');
 </script>
 </body>
 </html>
