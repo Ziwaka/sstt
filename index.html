@@ -124,6 +124,135 @@
         .class-teacher-header { background: #f0f4ff; padding: 7px 12px; display: flex; justify-content: space-between; align-items: center; }
         .class-teacher-header strong { font-size: 13px; color: #333; }
         .class-count-badge { background: #667eea22; color: #4a35b0; font-size: 11px; padding: 2px 10px; border-radius: 10px; font-weight: 600; }
+
+        /* ==========================================
+           PRINT PREVIEW OVERLAY (screen only)
+        ========================================== */
+        #print-preview-overlay {
+            display: none;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7); z-index: 2000;
+            justify-content: center; align-items: flex-start;
+            padding: 20px; overflow-y: auto; overflow-x: auto;
+        }
+        #print-preview-overlay.active { display: flex; }
+        #print-preview-box {
+            background: white; width: 210mm; min-height: 297mm;
+            border-radius: 4px; box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+            padding: 10mm; position: relative; margin: auto;
+            transition: width 0.2s, min-height 0.2s;
+        }
+        #print-preview-close {
+            position: fixed; top: 20px; right: 20px; z-index: 2100;
+            background: #dc3545; color: white; border: none; border-radius: 50%;
+            width: 44px; height: 44px; font-size: 22px; cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+        #print-preview-actions {
+            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+            z-index: 2100; display: flex; gap: 10px;
+        }
+        #print-preview-actions button {
+            padding: 10px 22px; font-size: 14px; font-weight: bold;
+            border-radius: 8px; border: none; cursor: pointer;
+        }
+        .btn-print-confirm { background: #4caf50; color: white; }
+        .btn-print-confirm:hover { background: #388e3c; }
+
+        /* ==========================================
+           PRINT TIMETABLE STYLES (inside preview)
+        ========================================== */
+        .print-timetable-wrap { font-family: 'Segoe UI', Tahoma, sans-serif; }
+
+        /* School header */
+        .pt-header {
+            display: flex; align-items: center; gap: 12px;
+            border-bottom: 3px solid #667eea; padding-bottom: 8px; margin-bottom: 8px;
+        }
+        .pt-header .pt-logo img { height: 55px; width: auto; }
+        .pt-header .pt-school-info { flex: 1; }
+        .pt-header .pt-school-name {
+            font-size: 16px; font-weight: 900; color: #2c2c54;
+            letter-spacing: 0.5px; line-height: 1.2;
+        }
+        .pt-header .pt-year { font-size: 10px; color: #666; margin-top: 2px; }
+        .pt-header .pt-title {
+            font-size: 13px; font-weight: 700; color: #667eea;
+            background: linear-gradient(135deg, #667eea20, #764ba220);
+            padding: 3px 10px; border-radius: 4px; margin-top: 4px;
+            display: inline-block;
+        }
+        .pt-meta {
+            display: flex; justify-content: space-between;
+            font-size: 10px; color: #444; margin-bottom: 8px;
+            border: 1px solid #e0e0e0; border-radius: 4px; padding: 5px 10px;
+            background: #f8f9fa;
+        }
+        .pt-meta span { font-weight: 600; }
+
+        /* Table */
+        .pt-vertical-scaler { width: 100%; overflow: hidden; }
+        .pt-table { border-collapse: collapse; font-size: 9.5px; }
+        .pt-table th {
+            padding: 6px 4px; text-align: center; font-weight: 700;
+            color: white; letter-spacing: 0.3px;
+        }
+        .pt-table th.pt-th-time {
+            background: #2c2c54; min-width: 48px; width: 48px;
+        }
+        .pt-table th.pt-th-day {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+        }
+        .pt-table th.pt-th-sat { background: #e65100; }
+        .pt-table th.pt-th-sun { background: #c2185b; }
+        .pt-table td {
+            border: 1px solid #d0d0d0; padding: 2px 3px; vertical-align: top;
+            min-width: 44px;
+        }
+        .pt-table td.pt-td-time {
+            background: #f5f5f5; font-weight: 700; text-align: center;
+            font-size: 9px; color: #333; border-right: 2px solid #667eea;
+        }
+        .pt-table td.pt-td-sat { background: #fff8f0; }
+        .pt-table td.pt-td-sun { background: #fff0f5; }
+        .pt-table tr.pt-break-row td { background: #fff8e1 !important; }
+        .pt-table tr.pt-lunch-row td { background: #fce4ec !important; }
+
+        /* Schedule card inside print table */
+        .pt-card {
+            padding: 3px 4px; border-radius: 3px;
+            border-left: 3px solid #667eea; margin: 1px 0;
+            font-size: 9px; line-height: 1.3;
+        }
+        .pt-card.pt-break { background: #fff9c4; border-left-color: #f57f17; }
+        .pt-card.pt-lunch { background: #fce4ec; border-left-color: #880e4f; }
+        .pt-card.pt-duty  { background: #e8f5e9; border-left-color: #1b5e20; }
+        .pt-card .pt-subject { font-weight: 700; font-size: 9.5px; display: block; }
+        .pt-card .pt-teacher { font-size: 8.5px; color: #555; display: block; }
+        .pt-card .pt-type-tag { font-size: 8px; font-weight: 700; color: #c62828; }
+        .pt-card .pt-portion { font-size: 8px; color: #7b1fa2; }
+
+        .pt-footer {
+            margin-top: 8px; border-top: 1px solid #ddd; padding-top: 5px;
+            font-size: 9px; color: #777; text-align: center;
+        }
+
+        /* ==========================================
+           @MEDIA PRINT — only print-preview-box
+        ========================================== */
+        @media print {
+            html, body {
+                margin: 0 !important; padding: 0 !important;
+                background: white !important;
+            }
+            /* Hide everything except the print box */
+            body > * { display: none !important; }
+            #print-preview-overlay { display: block !important; position: static !important; background: none !important; padding: 0 !important; overflow: visible !important; }
+            #print-preview-box { box-shadow: none !important; border-radius: 0 !important; width: 100% !important; min-height: auto !important; padding: 0 !important; margin: 0 !important; }
+            #print-preview-close, #print-preview-actions { display: none !important; }
+            @page { size: A4 portrait; margin: 10mm; }
+        }
+
         @media (max-width: 768px) {
             body { padding: 0; }
             .container { border-radius: 0; }
@@ -143,30 +272,7 @@
             .floating-save { padding: 8px 16px; font-size: 12px; bottom: 16px; right: 16px; }
             .period-row { flex-direction: column; align-items: stretch; }
             .period-row .time-input { width: 100%; }
-        }
-        @media print {
-            body { background: white; padding: 0; margin: 0; }
-            .container { box-shadow: none; border-radius: 0; max-width: 100%; margin: 0; }
-            .header, .tabs, .add-btn, .sync-status, .tab, .btn-sm, button:not(.print-btn), .modal, .toast, .card:not(.printable), .floating-save { display: none !important; }
-            .printable { margin: 0; padding: 0; }
-            .timetable th, .timetable td { border: 1px solid #000 !important; padding: 4px !important; }
-            .timetable { font-size: 9px !important; width: 100%; }
-            .timetable th.saturday { background: #ff9800 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-            .timetable th.sunday { background: #e91e63 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-            .timetable td.saturday { background: #fff3e0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-            .timetable td.sunday { background: #fce4ec !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-            .schedule-card.break { background: #FFE082 !important; -webkit-print-color-adjust: exact; }
-            .schedule-card.lunch { background: #F48FB1 !important; -webkit-print-color-adjust: exact; }
-            .schedule-card.duty { background: #A5D6A7 !important; -webkit-print-color-adjust: exact; }
-            tr.break-row > td { background: #FFD54F !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-            tr.lunch-row > td { background: #F06292 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-            .gap-card { background: #fff9c4 !important; border-left: 3px solid #ffc107 !important; }
-            .timetable-header .school-name { font-size: 14px; }
-            .timetable-header .academic-year { font-size: 9px; }
-            .timetable-header .title { font-size: 11px; }
-            .timetable-info { font-size: 9px; margin: 5px 0; }
-            .timetable-footer { font-size: 8px; margin-top: 8px; }
-            @page { size: A4; margin: 0.8cm; }
+            #print-preview-box { width: 95vw; padding: 6mm; }
         }
     </style>
 </head>
@@ -211,7 +317,7 @@
         </div>
         <!-- Timetable -->
         <div id="timetable-content" class="tab-content">
-            <div class="card printable">
+            <div class="card">
                 <div id="timetable-header-container"></div>
                 <div style="display:flex; gap:12px; margin-bottom:12px; flex-wrap:wrap;">
                     <label><input type="radio" name="viewType" value="teacher" checked onchange="changeViewType('teacher')"> 👨‍🏫 Teacher Personal</label>
@@ -246,10 +352,10 @@
                 </div>
                 <div id="teacher-class-info" class="teacher-class-info"></div>
                 <div class="print-options">
-                    <button onclick="printTimetable(false,'horizontal')" class="btn-sm">🖨️ Print (Horizontal)</button>
-                    <button onclick="printTimetable(false,'vertical')" class="btn-sm">🖨️ Print (Vertical)</button>
-                    <button id="printNoTeacherBtn" onclick="printTimetable(true,'horizontal')" style="display:none;" class="btn-sm">Print (No Teacher)</button>
-                    <button id="printNoTeacherVertBtn" onclick="printTimetable(true,'vertical')" style="display:none;" class="btn-sm">Print (No Teacher Vert)</button>
+                    <button onclick="openPrintPreview('horizontal',false)" class="btn-sm">🖨️ Print (Horizontal)</button>
+                    <button onclick="openPrintPreview('vertical',false)" class="btn-sm">🖨️ Print (Vertical)</button>
+                    <button id="printNoTeacherBtn" onclick="openPrintPreview('horizontal',true)" style="display:none;" class="btn-sm">Print (No Teacher)</button>
+                    <button id="printNoTeacherVertBtn" onclick="openPrintPreview('vertical',true)" style="display:none;" class="btn-sm">Print (No Teacher Vert)</button>
                 </div>
                 <div class="timetable-wrapper" id="timetable-container"></div>
                 <div id="timetable-footer-container"></div>
@@ -368,6 +474,17 @@
 </div>
 <button class="floating-save" onclick="globalSave()">💾 Save All</button>
 
+<!-- Print Preview Overlay -->
+<div id="print-preview-overlay">
+    <button id="print-preview-close" onclick="closePrintPreview()">✕</button>
+    <div id="print-preview-actions">
+        <button class="btn-print-confirm" onclick="doPrint()">🖨️ Print / Save PDF</button>
+    </div>
+    <div id="print-preview-box">
+        <div id="print-preview-content"></div>
+    </div>
+</div>
+
 <!-- Schedule Modal -->
 <div id="schedule-modal" class="modal">
     <div class="modal-content">
@@ -427,6 +544,42 @@
     function getSubjectName(id){ let s=subjects.find(x=>x.id==id); return s?s.name:'Unknown'; }
     function getSubjectColor(id){ let s=subjects.find(x=>x.id==id); return s?s.color:'#2196f3'; }
     function getClassName(id){ let c=classes.find(x=>x.id==id); return c?`${c.name}-${c.section}`:'Unknown'; }
+    // Generate consistent color variant per subject+class combination
+    // Uses HSL rotation so same subject in different classes gets clearly different hues
+    function getClassBasedColor(subjectId, classId) {
+        let base = getSubjectColor(subjectId);
+        if (!classId) return base;
+        // Convert hex to HSL
+        let hex = base.replace('#','');
+        let r = parseInt(hex.slice(0,2),16)/255, g = parseInt(hex.slice(2,4),16)/255, b = parseInt(hex.slice(4,6),16)/255;
+        let max = Math.max(r,g,b), min = Math.min(r,g,b);
+        let h, s, l = (max+min)/2;
+        if(max===min){ h=s=0; }
+        else {
+            let d=max-min; s=l>0.5?d/(2-max-min):d/(max+min);
+            if(max===r) h=((g-b)/d+(g<b?6:0))/6;
+            else if(max===g) h=((b-r)/d+2)/6;
+            else h=((r-g)/d+4)/6;
+        }
+        // Get sorted class index for this teacher's schedules
+        let allClassIds = [...new Set(schedules.map(s => s.classId))].sort((a,b)=>a-b);
+        let idx = allClassIds.indexOf(parseInt(classId));
+        if (idx < 0) idx = 0;
+        // Rotate hue by 30° increments per class — very distinct colors
+        let hueShift = (idx * 0.083) % 1; // 30/360 = 0.083
+        let newH = (h + hueShift) % 1;
+        // Keep same lightness range but shift lightness slightly too
+        let lightnessAlt = [0.38, 0.32, 0.42, 0.36, 0.44, 0.30, 0.46, 0.34];
+        let newL = lightnessAlt[idx % 8];
+        let newS = Math.max(0.55, s);
+        // HSL to RGB
+        function hue2rgb(p,q,t){ if(t<0)t+=1; if(t>1)t-=1; if(t<1/6)return p+(q-p)*6*t; if(t<1/2)return q; if(t<2/3)return p+(q-p)*(2/3-t)*6; return p; }
+        let q2 = newL<0.5?newL*(1+newS):newL+newS-newL*newS, p2=2*newL-q2;
+        let nr=Math.round(hue2rgb(p2,q2,newH+1/3)*255);
+        let ng=Math.round(hue2rgb(p2,q2,newH)*255);
+        let nb2=Math.round(hue2rgb(p2,q2,newH-1/3)*255);
+        return '#' + ((nr<<16)|(ng<<8)|nb2).toString(16).padStart(6,'0');
+    }
     function getPeriodsForClass(cid){ return (classPeriods[cid] && classPeriods[cid].length) ? classPeriods[cid] : globalPeriods; }
     function getTeacherClassString(tid){ let ts=schedules.filter(s=>s.teacher==tid&&s.type==='class'); return [...new Set(ts.map(s=>getClassName(s.classId)))].join(', '); }
     function timeToMinutes(t){ if(!t) return 0; let [h,m]=t.split(':').map(Number); return h*60+m; }
@@ -440,44 +593,10 @@
 
     let _syncLocked = false;
     let _syncTimer  = null;
-    function scheduleCloudSync(){
-        clearTimeout(_syncTimer);
-        _syncTimer = setTimeout(()=>{ _doCloudSync(); }, 400);
-    }
-    async function _doCloudSync(){
-        if(_syncLocked){ scheduleCloudSync(); return; }
-        if(!currentUser||!navigator.onLine) return;
-        if(!db){ console.warn('Firestore not ready'); return; }
-        _syncLocked = true;
-        updateSyncStatusDisplay('☁️ Uploading...','syncing',lastCloudSyncTime);
-        try{
-            let now = Date.now();
-            lastCloudSyncTime = now;
-            await db.collection('school').doc('shared').set({
-                teachers,classes,subjects,schedules,holidays,classPeriods,
-                customDays,schoolInfo,globalPeriods,teacherOrder,
-                updated: firebase.firestore.FieldValue.serverTimestamp(),
-                _lastCloudSync: now
-            });
-            saveToLocal();
-            updateSyncStatusDisplay('☁️ Synced','online',now);
-        } catch(e){
-            console.warn('Cloud sync error:',e.message);
-            updateSyncStatusDisplay('⚠️ Upload failed','offline',lastCloudSyncTime);
-        } finally { _syncLocked = false; }
-    }
-    function forceCloudSync(){
-        if(!currentUser){ showToast("Wait for auth","warning"); return; }
-        if(!navigator.onLine){ showToast("No internet, saved locally","warning"); saveToLocal(); return; }
-        scheduleCloudSync();
-    }
-    async function forceCloudSyncNow(){
-        if(!currentUser){ showToast("Wait for auth","warning"); return; }
-        if(!navigator.onLine){ showToast("No internet, saved locally","warning"); saveToLocal(); return; }
-        clearTimeout(_syncTimer);
-        await _doCloudSync();
-        showToast("Upload complete");
-    }
+    function scheduleCloudSync(){ clearTimeout(_syncTimer); _syncTimer = setTimeout(()=>{ _doCloudSync(); }, 400); }
+    async function _doCloudSync(){ if(_syncLocked){ scheduleCloudSync(); return; } if(!currentUser||!navigator.onLine) return; if(!db){ console.warn('Firestore not ready'); return; } _syncLocked = true; updateSyncStatusDisplay('☁️ Uploading...','syncing',lastCloudSyncTime); try{ let now = Date.now(); lastCloudSyncTime = now; await db.collection('school').doc('shared').set({teachers,classes,subjects,schedules,holidays,classPeriods,customDays,schoolInfo,globalPeriods,teacherOrder,updated: firebase.firestore.FieldValue.serverTimestamp(),_lastCloudSync: now}); saveToLocal(); updateSyncStatusDisplay('☁️ Synced','online',now); } catch(e){ console.warn('Cloud sync error:',e.message); updateSyncStatusDisplay('⚠️ Upload failed','offline',lastCloudSyncTime); } finally { _syncLocked = false; } }
+    function forceCloudSync(){ if(!currentUser){ showToast("Wait for auth","warning"); return; } if(!navigator.onLine){ showToast("No internet, saved locally","warning"); saveToLocal(); return; } scheduleCloudSync(); }
+    async function forceCloudSyncNow(){ if(!currentUser){ showToast("Wait for auth","warning"); return; } if(!navigator.onLine){ showToast("No internet, saved locally","warning"); saveToLocal(); return; } clearTimeout(_syncTimer); await _doCloudSync(); showToast("Upload complete"); }
     async function loadFromCloudManual(overwrite=false){ if(!currentUser){ showToast("Wait for auth","warning"); return; } if(!navigator.onLine){ showToast("No internet","error"); return; } if(!db){ showToast("Firebase not ready","warning"); return; } updateSyncStatusDisplay('📥 Downloading...','syncing',lastCloudSyncTime); try{ let doc=await db.collection('school').doc('shared').get(); if(doc.exists){ let d=doc.data(); let cloudTs=d.updated?.toMillis()||0; let localRaw=localStorage.getItem('tm_data'); let localTs=localRaw?JSON.parse(localRaw)._updated||0:0; if(overwrite||cloudTs>localTs){ teachers=d.teachers||[]; classes=d.classes||[]; subjects=d.subjects||[]; schedules=d.schedules||[]; holidays=d.holidays||[]; classPeriods=d.classPeriods||{}; customDays=d.customDays||['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']; schoolInfo=d.schoolInfo||schoolInfo; globalPeriods=d.globalPeriods||globalPeriods; teacherOrder=d.teacherOrder||[]; lastCloudSyncTime=cloudTs; updateLogoPreview(); updateSchoolInfoForm(); saveToLocal(); updateAll(); showToast("Cloud data loaded"); updateSyncStatusDisplay('☁️ Loaded','online',lastCloudSyncTime); } else { showToast("Local is newer","warning"); updateSyncStatusDisplay('💾 Local newer','local',lastCloudSyncTime); } } else { showToast("No cloud data","warning"); } } catch(e){ showToast("Download failed: "+e.message,"error"); updateSyncStatusDisplay('⚠️ Failed','offline',lastCloudSyncTime); } }
     async function manualRetrySync(){ if(!currentUser){ showToast("Wait for auth","warning"); return; } if(!navigator.onLine){ showToast("No internet","error"); return; } if(!db){ showToast("Firebase not ready","warning"); return; } updateSyncStatusDisplay('🔄 Checking...','syncing',lastCloudSyncTime); try{ let doc=await db.collection('school').doc('shared').get(); if(doc.exists){ let d=doc.data(); let cloudTs=d.updated?.toMillis()||0; let localRaw=localStorage.getItem('tm_data'); let localTs=localRaw?JSON.parse(localRaw)._updated||0:0; if(cloudTs>localTs){ if(confirm("Cloud is newer. Overwrite local?")){ teachers=d.teachers||[]; classes=d.classes||[]; subjects=d.subjects||[]; schedules=d.schedules||[]; holidays=d.holidays||[]; classPeriods=d.classPeriods||{}; customDays=d.customDays||['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']; schoolInfo=d.schoolInfo||schoolInfo; globalPeriods=d.globalPeriods||globalPeriods; teacherOrder=d.teacherOrder||[]; lastCloudSyncTime=cloudTs; updateLogoPreview(); updateSchoolInfoForm(); saveToLocal(); updateAll(); showToast("Loaded newer cloud data"); updateSyncStatusDisplay('☁️ Loaded newer','online',lastCloudSyncTime); } else updateSyncStatusDisplay('💾 Kept local','local',lastCloudSyncTime); } else if(localTs>cloudTs){ showToast("Local is newer. Use Sync to Cloud.","warning"); updateSyncStatusDisplay('💻 Local newer','local',lastCloudSyncTime); } else { showToast("Already in sync.","success"); updateSyncStatusDisplay('✅ In sync','online',lastCloudSyncTime); } } else { showToast("No cloud data. Use Sync to Cloud.","warning"); } } catch(e){ showToast("Sync failed: "+e.message,"error"); updateSyncStatusDisplay('⚠️ Sync failed','offline',lastCloudSyncTime); } }
     function globalSave(){ saveToLocal(); forceCloudSyncNow().then(()=>showToast("Saved & Uploaded ✓")); }
@@ -518,94 +637,65 @@
             let hours = getDurationHours(start, end);
             let day   = s.day;
             if (!teacherStats[s.teacher]) teacherStats[s.teacher] = {};
-            TYPES.forEach(t => {
-                if (!teacherStats[s.teacher][t])
-                    teacherStats[s.teacher][t] = { periods:0, hours:0, dailyHours:{}, classDetails:{} };
-            });
+            TYPES.forEach(t => { if (!teacherStats[s.teacher][t]) teacherStats[s.teacher][t] = { periods:0, hours:0, dailyHours:{}, classDetails:{} }; });
             let ts = teacherStats[s.teacher][s.type];
-            ts.periods++;
-            ts.hours += hours;
+            ts.periods++; ts.hours += hours;
             ts.dailyHours[day] = (ts.dailyHours[day] || 0) + hours;
-
             if (s.type === 'class' && classes.some(c => c.id == s.classId) && subjects.some(sub => sub.id == s.subject)) {
                 let className   = getClassName(s.classId);
                 let subjectName = getSubjectName(s.subject);
                 let key = className + '|' + subjectName;
                 if (!ts.classDetails[key]) ts.classDetails[key] = { className, subjectName, periods:0, hours:0 };
-                ts.classDetails[key].periods++;
-                ts.classDetails[key].hours += hours;
-
+                ts.classDetails[key].periods++; ts.classDetails[key].hours += hours;
                 if (!classStats[s.classId]) classStats[s.classId] = { periods:0, hours:0, subjects:{}, teacherDetails:{} };
-                classStats[s.classId].periods++;
-                classStats[s.classId].hours += hours;
+                classStats[s.classId].periods++; classStats[s.classId].hours += hours;
                 if (!classStats[s.classId].subjects[subjectName]) classStats[s.classId].subjects[subjectName] = { periods:0, hours:0 };
-                classStats[s.classId].subjects[subjectName].periods++;
-                classStats[s.classId].subjects[subjectName].hours += hours;
+                classStats[s.classId].subjects[subjectName].periods++; classStats[s.classId].subjects[subjectName].hours += hours;
                 let tName = getTeacherName(s.teacher);
                 if (!classStats[s.classId].teacherDetails[tName]) classStats[s.classId].teacherDetails[tName] = { periods:0, hours:0 };
-                classStats[s.classId].teacherDetails[tName].periods++;
-                classStats[s.classId].teacherDetails[tName].hours += hours;
+                classStats[s.classId].teacherDetails[tName].periods++; classStats[s.classId].teacherDetails[tName].hours += hours;
             }
         });
 
         let orderedTeachers = getOrderedTeachers();
         let html = '';
-
-        // ── Card 0: Overall Stats Pills ──────────────────────
         let totalTeachersWithSchedule = new Set(schedules.filter(s=>s.type==='class').map(s=>s.teacher)).size;
         let totalClassesWithSchedule  = new Set(schedules.filter(s=>s.type==='class').map(s=>s.classId)).size;
         let totalClassPeriods         = schedules.filter(s=>s.type==='class').length;
         let totalTeachersRegistered   = teachers.length;
 
-        html += '<div class="stat-card">';
-        html += '<div class="stat-header">📊 အကျဉ်းချုပ် စာရင်း</div>';
-        html += '<div class="stat-body">';
-        html += '<div class="dash-pills">';
+        html += '<div class="stat-card"><div class="stat-header">📊 အကျဉ်းချုပ် စာရင်း</div><div class="stat-body"><div class="dash-pills">';
         html += '<div class="dash-pill"><div class="pill-label">စုစုပေါင်း ဆရာ/မ (မှတ်ပုံတင်)</div><div class="pill-value">'+totalTeachersRegistered+' ဦး</div></div>';
         html += '<div class="dash-pill"><div class="pill-label">သင်ကြားနေသော ဆရာ/မ</div><div class="pill-value">'+totalTeachersWithSchedule+' ဦး</div></div>';
         html += '<div class="dash-pill"><div class="pill-label">သင်ကြားနေသော အတန်း</div><div class="pill-value">'+totalClassesWithSchedule+' တန်း</div></div>';
         html += '<div class="dash-pill"><div class="pill-label">စုစုပေါင်း သင်ချိန် (Periods)</div><div class="pill-value">'+totalClassPeriods+'</div></div>';
         html += '</div></div></div>';
 
-        // ── Card 1: Summary Table (Teacher × Class) with Sr. No. ──
         let allClassIds   = [...new Set(schedules.filter(s => s.type === 'class').map(s => s.classId))];
         let allClassNames = allClassIds.map(id => ({ id, name: getClassName(id) })).sort((a,b) => a.name.localeCompare(b.name));
-
-        html += '<div class="stat-card">';
-        html += '<div class="stat-header">📋 ဆရာ × အတန်း သင်ချိန် (နာရီ)</div>';
-        html += '<div class="stat-body"><div style="overflow-x:auto;">';
-        html += '<table class="dashboard-table"><thead><tr>';
+        html += '<div class="stat-card"><div class="stat-header">📋 ဆရာ × အတန်း သင်ချိန် (နာရီ)</div><div class="stat-body"><div style="overflow-x:auto;"><table class="dashboard-table"><thead><tr>';
         html += '<th style="text-align:center;width:36px;">Sr.</th><th>ဆရာ/မ</th>';
         allClassNames.forEach(c => { html += '<th>' + c.name + '</th>'; });
-        html += '<th>စုစုပေါင်း</th>';
-        html += '</tr></thead><tbody>';
-
+        html += '<th>စုစုပေါင်း</th></tr></thead><tbody>';
         let srNo = 0;
         for (let t of orderedTeachers) {
             let byType = teacherStats[t.id];
             if (!byType || !byType.class || byType.class.periods === 0) continue;
             srNo++;
             let tColor = t.color, grandH = 0;
-            html += '<tr>';
-            html += '<td style="text-align:center;font-weight:bold;color:#888;">'+srNo+'</td>';
+            html += '<tr><td style="text-align:center;font-weight:bold;color:#888;">'+srNo+'</td>';
             html += '<td style="font-weight:bold;color:' + tColor + ';">👨‍🏫 ' + escapeHtml(t.name) + '</td>';
             for (let { id, name } of allClassNames) {
                 let h = 0;
-                if (byType.class.classDetails) {
-                    for (let key in byType.class.classDetails) {
-                        if (key.startsWith(name + '|')) h += byType.class.classDetails[key].hours;
-                    }
-                }
+                if (byType.class.classDetails) { for (let key in byType.class.classDetails) { if (key.startsWith(name + '|')) h += byType.class.classDetails[key].hours; } }
                 grandH += h;
                 let cellStyle = h > 0 ? 'background:' + tColor + '18;font-weight:600;color:' + tColor + ';' : '';
                 html += '<td style="text-align:center;' + cellStyle + '">' + (h > 0 ? h.toFixed(1) + 'h' : '—') + '</td>';
             }
-            html += '<td style="text-align:center;font-weight:bold;color:#1565c0;">' + grandH.toFixed(1) + 'h</td>';
-            html += '</tr>';
+            html += '<td style="text-align:center;font-weight:bold;color:#1565c0;">' + grandH.toFixed(1) + 'h</td></tr>';
         }
         html += '</tbody></table></div></div></div>';
 
-        // ── Card 2: Class × Teachers Detail ──────────────────
         let classTeacherMap = {};
         schedules.filter(s => s.type === 'class').forEach(s => {
             let cid = s.classId, tid = s.teacher;
@@ -614,149 +704,78 @@
             if (!classTeacherMap[cid]) classTeacherMap[cid] = {};
             if (!classTeacherMap[cid][tid]) classTeacherMap[cid][tid] = { subjects: new Set(), periods: 0 };
             classTeacherMap[cid][tid].periods++;
-            if (s.subject && subjects.some(sub => sub.id == s.subject))
-                classTeacherMap[cid][tid].subjects.add(getSubjectName(s.subject));
+            if (s.subject && subjects.some(sub => sub.id == s.subject)) classTeacherMap[cid][tid].subjects.add(getSubjectName(s.subject));
         });
-
         let sortedClassIds = Object.keys(classTeacherMap).sort((a,b) => getClassName(parseInt(a)).localeCompare(getClassName(parseInt(b))));
-
-        html += '<div class="stat-card">';
-        html += '<div class="stat-header">🏫 အတန်းအလိုက် ဆရာ/မ စာရင်း</div>';
-        html += '<div class="stat-body">';
-
+        html += '<div class="stat-card"><div class="stat-header">🏫 အတန်းအလိုက် ဆရာ/မ စာရင်း</div><div class="stat-body">';
         let classSr = 0;
         for (let cid of sortedClassIds) {
             classSr++;
             let cName = getClassName(parseInt(cid));
             let teacherEntries = Object.entries(classTeacherMap[cid]).sort((a,b) => getTeacherName(parseInt(a[0])).localeCompare(getTeacherName(parseInt(b[0]))));
-
-            html += '<div class="class-teacher-card">';
-            html += '<div class="class-teacher-header">';
-            html += '<strong>'+classSr+'. 🏫 '+escapeHtml(cName)+'</strong>';
-            html += '<span class="class-count-badge">ဆရာ/မ '+teacherEntries.length+' ဦး</span>';
-            html += '</div>';
-            html += '<div style="overflow-x:auto;"><table class="dashboard-table"><thead><tr>';
-            html += '<th style="text-align:center;width:36px;">Sr.</th><th>ဆရာ/မ</th><th>ဘာသာရပ်</th><th style="text-align:center;">Periods</th>';
-            html += '</tr></thead><tbody>';
-
+            html += '<div class="class-teacher-card"><div class="class-teacher-header"><strong>'+classSr+'. 🏫 '+escapeHtml(cName)+'</strong><span class="class-count-badge">ဆရာ/မ '+teacherEntries.length+' ဦး</span></div>';
+            html += '<div style="overflow-x:auto;"><table class="dashboard-table"><thead><tr><th style="text-align:center;width:36px;">Sr.</th><th>ဆရာ/မ</th><th>ဘာသာရပ်</th><th style="text-align:center;">Periods</th></tr></thead><tbody>';
             let tSr = 0;
             for (let [tid, data] of teacherEntries) {
                 tSr++;
                 let tc = getTeacherColor(parseInt(tid));
-                html += '<tr>';
-                html += '<td style="text-align:center;color:#888;">'+tSr+'</td>';
-                html += '<td style="font-weight:600;color:'+tc+';">👨‍🏫 '+escapeHtml(getTeacherName(parseInt(tid)))+'</td>';
-                html += '<td>'+escapeHtml([...data.subjects].join(', ')||'—')+'</td>';
-                html += '<td style="text-align:center;">'+data.periods+'</td>';
-                html += '</tr>';
+                html += '<tr><td style="text-align:center;color:#888;">'+tSr+'</td><td style="font-weight:600;color:'+tc+';">👨‍🏫 '+escapeHtml(getTeacherName(parseInt(tid)))+'</td><td>'+escapeHtml([...data.subjects].join(', ')||'—')+'</td><td style="text-align:center;">'+data.periods+'</td></tr>';
             }
             html += '</tbody></table></div></div>';
         }
         html += '</div></div>';
 
-        // ── Card 3: Detailed Teacher Cards ────────────────────
-        html += '<div class="stat-card">';
-        html += '<div class="stat-header">👨‍🏫 ဆရာ/မ အသေးစိတ် (နေ့စဉ်၊ အမျိုးအစားအလိုက်)</div>';
-        html += '<div class="stat-body">';
-
+        html += '<div class="stat-card"><div class="stat-header">👨‍🏫 ဆရာ/မ အသေးစိတ် (နေ့စဉ်၊ အမျိုးအစားအလိုက်)</div><div class="stat-body">';
         for (let t of orderedTeachers) {
             let byType = teacherStats[t.id];
             if (!byType) continue;
             let tColor = t.color;
-            let sortedClassDetails = byType.class && byType.class.classDetails
-                ? Object.values(byType.class.classDetails).sort((a,b) => a.subjectName.localeCompare(b.subjectName))
-                : [];
+            let sortedClassDetails = byType.class && byType.class.classDetails ? Object.values(byType.class.classDetails).sort((a,b) => a.subjectName.localeCompare(b.subjectName)) : [];
             let classNames = [...new Set(sortedClassDetails.map(d => d.className))].join(', ') || '—';
             let totalP = (byType.class?.periods||0) + (byType.duty?.periods||0) + (byType.break?.periods||0) + (byType.lunch?.periods||0);
-            let totalH = (byType.class?.hours||0)   + (byType.duty?.hours||0)   + (byType.break?.hours||0)   + (byType.lunch?.hours||0);
-            let cdId   = 'cd' + t.id;
-
-            html += '<div class="teacher-detail-card">';
-            html += '<div class="teacher-detail-header" style="background:' + tColor + '18;border-left:4px solid ' + tColor + ';" ';
-            html += 'onclick="var b=this.nextElementSibling;b.style.display=b.style.display===\'none\'?\'\':\'none\';this.querySelector(\'.arr\').textContent=b.style.display===\'\'?\'▼\':\'▶\';">';
-            html += '<div><span class="arr">▼</span> <strong>' + escapeHtml(t.name) + '</strong><br>';
-            html += '<span style="font-size:10px;color:#666;">🏫 ' + escapeHtml(classNames) + '</span></div>';
-            html += '<div>';
-            html += '<span style="background:#1565c0;color:white;padding:2px 7px;border-radius:10px;font-size:11px;">' + totalP + ' periods</span> ';
-            html += '<span style="background:#2e7d32;color:white;padding:2px 7px;border-radius:10px;font-size:11px;">' + totalH.toFixed(1) + ' hrs</span>';
-            html += '</div></div>';
-
-            html += '<div class="teacher-detail-body"><div style="overflow-x:auto;">';
-            html += '<table class="dashboard-table"><thead><tr>';
-            html += '<th>အမျိုးအစား</th>';
+            let totalH = (byType.class?.hours||0) + (byType.duty?.hours||0) + (byType.break?.hours||0) + (byType.lunch?.hours||0);
+            let cdId = 'cd' + t.id;
+            html += '<div class="teacher-detail-card"><div class="teacher-detail-header" style="background:' + tColor + '18;border-left:4px solid ' + tColor + ';" onclick="var b=this.nextElementSibling;b.style.display=b.style.display===\'none\'?\'\':\'none\';this.querySelector(\'.arr\').textContent=b.style.display===\'\'?\'▼\':\'▶\';">';
+            html += '<div><span class="arr">▼</span> <strong>' + escapeHtml(t.name) + '</strong><br><span style="font-size:10px;color:#666;">🏫 ' + escapeHtml(classNames) + '</span></div>';
+            html += '<div><span style="background:#1565c0;color:white;padding:2px 7px;border-radius:10px;font-size:11px;">' + totalP + ' periods</span> <span style="background:#2e7d32;color:white;padding:2px 7px;border-radius:10px;font-size:11px;">' + totalH.toFixed(1) + ' hrs</span></div></div>';
+            html += '<div class="teacher-detail-body"><div style="overflow-x:auto;"><table class="dashboard-table"><thead><tr><th>အမျိုးအစား</th>';
             customDays.forEach(d => { html += '<th>' + (dayShort[d] || d.substring(0,3)) + '</th>'; });
-            html += '<th>Periods</th><th>နာရီ</th>';
-            html += '</tr></thead><tbody>';
-
+            html += '<th>Periods</th><th>နာရီ</th></tr></thead><tbody>';
             let typeOrder = ['class','duty','break','lunch'];
             for (let type of typeOrder) {
                 let ts = byType[type];
                 if (!ts || ts.periods === 0) continue;
-
-                html += '<tr style="background:' + TYPE_BG[type] + ';">';
-                html += '<td style="color:' + TYPE_COLOR[type] + ';">' + TYPE_LABEL[type] + '</td>';
-                customDays.forEach(d => {
-                    let h = ts.dailyHours[d] || 0;
-                    let s = h > 0 ? 'font-weight:600;color:' + TYPE_COLOR[type] + ';' : '';
-                    html += '<td style="text-align:center;' + s + '">' + (h > 0 ? h.toFixed(1) + 'h' : '—') + '</td>';
-                });
-                html += '<td style="text-align:center;">' + ts.periods + '</td>';
-                html += '<td style="text-align:center;">' + ts.hours.toFixed(1) + 'h</td></tr>';
-
+                html += '<tr style="background:' + TYPE_BG[type] + ';"><td style="color:' + TYPE_COLOR[type] + ';">' + TYPE_LABEL[type] + '</td>';
+                customDays.forEach(d => { let h = ts.dailyHours[d] || 0; let s = h > 0 ? 'font-weight:600;color:' + TYPE_COLOR[type] + ';' : ''; html += '<td style="text-align:center;' + s + '">' + (h > 0 ? h.toFixed(1) + 'h' : '—') + '</td>'; });
+                html += '<td style="text-align:center;">' + ts.periods + '</td><td style="text-align:center;">' + ts.hours.toFixed(1) + 'h</td></tr>';
                 if (type === 'class' && sortedClassDetails.length > 0) {
-                    html += '<tr style="background:#eef2ff;"><td colspan="' + (customDays.length + 3) + '" style="padding:3px;">';
-                    html += '<span onclick="toggleRows(\'' + cdId + '\',this)" style="cursor:pointer;color:#667eea;">▼ အတန်းအလိုက်</span>';
-                    html += '</td></tr>';
+                    html += '<tr style="background:#eef2ff;"><td colspan="' + (customDays.length + 3) + '" style="padding:3px;"><span onclick="toggleRows(\'' + cdId + '\',this)" style="cursor:pointer;color:#667eea;">▼ အတန်းအလိုက်</span></td></tr>';
                     for (let cd of sortedClassDetails) {
-                        html += '<tr class="detail-' + cdId + '" style="display:none;background:#f8f9ff;">';
-                        html += '<td style="padding-left:20px;">↳ ' + escapeHtml(cd.className) + '</td>';
-                        html += '<td colspan="' + customDays.length + '">' + escapeHtml(cd.subjectName) + '</td>';
-                        html += '<td style="text-align:center;">' + cd.periods + '</td>';
-                        html += '<td style="text-align:center;">' + cd.hours.toFixed(1) + 'h</td></tr>';
+                        html += '<tr class="detail-' + cdId + '" style="display:none;background:#f8f9ff;"><td style="padding-left:20px;">↳ ' + escapeHtml(cd.className) + '</td><td colspan="' + customDays.length + '">' + escapeHtml(cd.subjectName) + '</td><td style="text-align:center;">' + cd.periods + '</td><td style="text-align:center;">' + cd.hours.toFixed(1) + 'h</td></tr>';
                     }
                 }
             }
-
             html += '<tr class="total-row"><td><strong>စုစုပေါင်း</strong></td>';
-            customDays.forEach(d => {
-                let h = 0;
-                typeOrder.forEach(tp => { h += byType[tp]?.dailyHours[d] || 0; });
-                html += '<td style="text-align:center;font-weight:bold;">' + (h > 0 ? h.toFixed(1) + 'h' : '—') + '</td>';
-            });
-            html += '<td style="text-align:center;"><strong>' + totalP + '</strong></td>';
-            html += '<td style="text-align:center;"><strong>' + totalH.toFixed(1) + 'h</strong></td></tr>';
-
-            html += '</tbody></table></div></div>';
-            html += '</div>';
+            customDays.forEach(d => { let h = 0; typeOrder.forEach(tp => { h += byType[tp]?.dailyHours[d] || 0; }); html += '<td style="text-align:center;font-weight:bold;">' + (h > 0 ? h.toFixed(1) + 'h' : '—') + '</td>'; });
+            html += '<td style="text-align:center;"><strong>' + totalP + '</strong></td><td style="text-align:center;"><strong>' + totalH.toFixed(1) + 'h</strong></td></tr>';
+            html += '</tbody></table></div></div></div>';
         }
         html += '</div></div>';
 
-        // ── Card 4: Class Statistics ───────────────────────────
-        html += '<div class="stat-card">';
-        html += '<div class="stat-header">📈 Class Statistics (သင်ချိန်သာ)</div>';
-        html += '<div class="stat-body"><div style="overflow-x:auto;">';
-        html += '<table class="dashboard-table"><thead><tr>';
-        html += '<th>အတန်း</th><th>ဘာသာရပ် / ဆရာ</th><th>Periods</th><th>နာရီ</th>';
-        html += '</tr></thead><tbody>';
-
+        html += '<div class="stat-card"><div class="stat-header">📈 Class Statistics (သင်ချိန်သာ)</div><div class="stat-body"><div style="overflow-x:auto;"><table class="dashboard-table"><thead><tr><th>အတန်း</th><th>ဘာသာရပ် / ဆရာ</th><th>Periods</th><th>နာရီ</th></tr></thead><tbody>';
         for (let [cid, data] of Object.entries(classStats)) {
             let cName = getClassName(parseInt(cid));
-            for (let [sName, sd] of Object.entries(data.subjects)) {
-                html += '<tr><td>' + escapeHtml(cName) + '</td><td>📖 ' + escapeHtml(sName) + '</td><td>' + sd.periods + '</td><td>' + sd.hours.toFixed(1) + '</td></tr>';
-            }
-            for (let [tName, td] of Object.entries(data.teacherDetails)) {
-                html += '<tr style="background:#f3f3f3;"><td>' + escapeHtml(cName) + '</td><td>👨‍🏫 ' + escapeHtml(tName) + '</td><td>' + td.periods + '</td><td>' + td.hours.toFixed(1) + '</td></tr>';
-            }
+            for (let [sName, sd] of Object.entries(data.subjects)) { html += '<tr><td>' + escapeHtml(cName) + '</td><td>📖 ' + escapeHtml(sName) + '</td><td>' + sd.periods + '</td><td>' + sd.hours.toFixed(1) + '</td></tr>'; }
+            for (let [tName, td] of Object.entries(data.teacherDetails)) { html += '<tr style="background:#f3f3f3;"><td>' + escapeHtml(cName) + '</td><td>👨‍🏫 ' + escapeHtml(tName) + '</td><td>' + td.periods + '</td><td>' + td.hours.toFixed(1) + '</td></tr>'; }
             html += '<tr class="total-row"><td colspan="2"><strong>' + escapeHtml(cName) + ' — Total</strong></td><td><strong>' + data.periods + '</strong></td><td><strong>' + data.hours.toFixed(1) + '</strong></td></tr>';
         }
         html += '</tbody></table></div></div></div>';
-
         document.getElementById('dashboard-stats').innerHTML = html;
 
         let invalid = [];
         schedules.forEach((s, idx) => {
             if (!teachers.some(t => t.id == s.teacher)) invalid.push({type:'Teacher', name:s.teacher, idx});
-            if (!classes.some(c => c.id == s.classId))  invalid.push({type:'Class',   name:s.classId,  idx});
+            if (!classes.some(c => c.id == s.classId))  invalid.push({type:'Class', name:s.classId, idx});
             if (s.subject && !subjects.some(sub => sub.id == s.subject)) invalid.push({type:'Subject', name:s.subject, idx});
             if (!customDays.includes(s.day)) invalid.push({type:'Day', name:s.day, idx});
             let periods = getPeriodsForClass(s.classId);
@@ -778,82 +797,29 @@
         periods.forEach((p, idx) => {
             let div = document.createElement('div');
             div.className = 'period-row';
-            div.innerHTML =
-                '<input type="text" class="period-name" value="' + escapeHtml(p.name) + '" placeholder="Period name" style="flex:2;min-width:120px;">' +
+            div.innerHTML = '<input type="text" class="period-name" value="' + escapeHtml(p.name) + '" placeholder="Period name" style="flex:2;min-width:120px;">' +
                 '<input type="time" class="period-start" value="' + p.start + '" style="width:130px;">' +
                 '<input type="time" class="period-end" value="' + p.end + '" style="width:130px;">' +
-                '<select class="period-type" style="width:110px;">' +
-                    '<option value="class"' + (p.type==='class'?' selected':'') + '>Class</option>' +
-                    '<option value="break"' + (p.type==='break'?' selected':'') + '>Break</option>' +
-                    '<option value="lunch"' + (p.type==='lunch'?' selected':'') + '>Lunch</option>' +
-                    '<option value="duty"' + (p.type==='duty'?' selected':'') + '>Duty</option>' +
-                '</select>' +
+                '<select class="period-type" style="width:110px;"><option value="class"' + (p.type==='class'?' selected':'') + '>Class</option><option value="break"' + (p.type==='break'?' selected':'') + '>Break</option><option value="lunch"' + (p.type==='lunch'?' selected':'') + '>Lunch</option><option value="duty"' + (p.type==='duty'?' selected':'') + '>Duty</option></select>' +
                 '<button class="btn-sm btn-danger" onclick="removePeriodRow(' + idx + ')">X</button>';
             container.appendChild(div);
         });
         let cloneSel = document.getElementById('clone-from-class');
-        cloneSel.innerHTML = '<option value="">-- Source Class --</option>' +
-            classes.filter(c => c.id != cid).map(c => '<option value="' + c.id + '">' + c.name + '-' + c.section + '</option>').join('');
+        cloneSel.innerHTML = '<option value="">-- Source Class --</option>' + classes.filter(c => c.id != cid).map(c => '<option value="' + c.id + '">' + c.name + '-' + c.section + '</option>').join('');
     }
-    function addPeriodRow(){
-        let cid = document.getElementById('period-class-select').value;
-        if(!cid){ showToast("Select a class first","warning"); return; }
-        if(!classPeriods[cid]) classPeriods[cid] = JSON.parse(JSON.stringify(getPeriodsForClass(parseInt(cid))));
-        classPeriods[cid].push({ name:"New Period", start:"09:00", end:"10:00", type:"class" });
-        loadPeriods();
-    }
-    function removePeriodRow(idx){
-        let cid = document.getElementById('period-class-select').value;
-        if(!cid) return;
-        if(classPeriods[cid] && classPeriods[cid].length > 1){ classPeriods[cid].splice(idx,1); loadPeriods(); }
-        else showToast("Cannot delete last period","warning");
-    }
-    function savePeriods(){
-        let cid = document.getElementById('period-class-select').value;
-        if(!cid){ showToast("Select a class","error"); return; }
-        let newPeriods = [];
-        let rows = document.querySelectorAll('#periods-list .period-row');
-        for(let row of rows){
-            let name  = row.querySelector('.period-name').value.trim();
-            let start = row.querySelector('.period-start').value;
-            let end   = row.querySelector('.period-end').value;
-            let type  = row.querySelector('.period-type').value;
-            if(!name){ showToast("Period name required","error"); return; }
-            if(!start||!end){ showToast("Start/End time required","error"); return; }
-            newPeriods.push({name,start,end,type});
-        }
-        if(newPeriods.length===0){ showToast("At least one period required","error"); return; }
-        classPeriods[cid] = newPeriods;
-        schedules.forEach(s => {
-            if(s.classId == cid && s.periodName){
-                let matching = newPeriods.find(p => p.name === s.periodName);
-                if(matching){ s.startTime = matching.start; s.endTime = matching.end; }
-            }
-        });
-        saveToLocal(); forceCloudSync(); updateAll(); showToast("Periods saved");
-    }
-    function clonePeriods(){
-        let src = document.getElementById('clone-from-class').value;
-        let tgt = document.getElementById('period-class-select').value;
-        if(!src||!tgt){ showToast("Select both source and target class","warning"); return; }
-        classPeriods[tgt] = JSON.parse(JSON.stringify(getPeriodsForClass(parseInt(src))));
-        saveToLocal(); forceCloudSync(); loadPeriods(); showToast("Cloned");
-    }
+    function addPeriodRow(){ let cid = document.getElementById('period-class-select').value; if(!cid){ showToast("Select a class first","warning"); return; } if(!classPeriods[cid]) classPeriods[cid] = JSON.parse(JSON.stringify(getPeriodsForClass(parseInt(cid)))); classPeriods[cid].push({ name:"New Period", start:"09:00", end:"10:00", type:"class" }); loadPeriods(); }
+    function removePeriodRow(idx){ let cid = document.getElementById('period-class-select').value; if(!cid) return; if(classPeriods[cid] && classPeriods[cid].length > 1){ classPeriods[cid].splice(idx,1); loadPeriods(); } else showToast("Cannot delete last period","warning"); }
+    function savePeriods(){ let cid = document.getElementById('period-class-select').value; if(!cid){ showToast("Select a class","error"); return; } let newPeriods = []; let rows = document.querySelectorAll('#periods-list .period-row'); for(let row of rows){ let name=row.querySelector('.period-name').value.trim(),start=row.querySelector('.period-start').value,end=row.querySelector('.period-end').value,type=row.querySelector('.period-type').value; if(!name){ showToast("Period name required","error"); return; } if(!start||!end){ showToast("Start/End time required","error"); return; } newPeriods.push({name,start,end,type}); } if(newPeriods.length===0){ showToast("At least one period required","error"); return; } classPeriods[cid] = newPeriods; schedules.forEach(s => { if(s.classId == cid && s.periodName){ let matching = newPeriods.find(p => p.name === s.periodName); if(matching){ s.startTime = matching.start; s.endTime = matching.end; } } }); saveToLocal(); forceCloudSync(); updateAll(); showToast("Periods saved"); }
+    function clonePeriods(){ let src = document.getElementById('clone-from-class').value,tgt = document.getElementById('period-class-select').value; if(!src||!tgt){ showToast("Select both source and target class","warning"); return; } classPeriods[tgt] = JSON.parse(JSON.stringify(getPeriodsForClass(parseInt(src)))); saveToLocal(); forceCloudSync(); loadPeriods(); showToast("Cloned"); }
 
     // ======================== TIMETABLE RENDER ========================
     function renderTimetable(){
         let sid = document.getElementById('view-select').value;
         if(!sid){ document.getElementById('timetable-container').innerHTML='<p>Select an item</p>'; return; }
-
         if(currentView === 'teacher'){
             let teacherId = parseInt(sid);
             let teacherScheds = schedules.filter(s => s.teacher === teacherId);
-            if(teacherScheds.length === 0){
-                document.getElementById('timetable-container').innerHTML='<p>No schedules for this teacher</p>';
-                updateTimetableHeader();
-                document.getElementById('teacher-class-info').innerHTML = '🏫 Teaches: ' + getTeacherClassString(teacherId);
-                return;
-            }
+            if(teacherScheds.length === 0){ document.getElementById('timetable-container').innerHTML='<p>No schedules for this teacher</p>'; updateTimetableHeader(); document.getElementById('teacher-class-info').innerHTML = '🏫 Teaches: ' + getTeacherClassString(teacherId); return; }
             let dayMap = {};
             customDays.forEach(day => dayMap[day] = []);
             teacherScheds.forEach(s => { if(dayMap[s.day]) dayMap[s.day].push(s); });
@@ -868,14 +834,10 @@
                 blocks.sort((a,b)=>timeToMinutes(a.start)-timeToMinutes(b.start));
                 let final=[], lastEnd=null;
                 for(let b of blocks){
-                    if(lastEnd!==null){
-                        let gap=timeToMinutes(b.start)-timeToMinutes(lastEnd);
-                        if(gap>0) final.push({start:lastEnd,end:b.start,type:'gap',gapMinutes:gap,gapType:gap<=15?'small':'large'});
-                    }
+                    if(lastEnd!==null){ let gap=timeToMinutes(b.start)-timeToMinutes(lastEnd); if(gap>0) final.push({start:lastEnd,end:b.start,type:'gap',gapMinutes:gap,gapType:gap<=15?'small':'large'}); }
                     final.push(b); lastEnd=b.end;
                 }
-                daysData[day]=final;
-                maxBlocks=Math.max(maxBlocks,final.length);
+                daysData[day]=final; maxBlocks=Math.max(maxBlocks,final.length);
             }
             let dayNames={Monday:'MON',Tuesday:'TUE',Wednesday:'WED',Thursday:'THU',Friday:'FRI',Saturday:'SAT',Sunday:'SUN'};
             let typeLabel={class:'',duty:'🔔 Duty',break:'☕ Break',lunch:'🍽️ Lunch'};
@@ -894,26 +856,18 @@
                     if(blk){
                         if(blk.type==='occupied'){
                             let s=blk.schedule;
-                            let cardCls='schedule-card';
-                            if(s.type==='break') cardCls+=' break';
-                            else if(s.type==='lunch') cardCls+=' lunch';
-                            else if(s.type==='duty') cardCls+=' duty';
+                            let cardCls='schedule-card'; if(s.type==='break') cardCls+=' break'; else if(s.type==='lunch') cardCls+=' lunch'; else if(s.type==='duty') cardCls+=' duty';
                             let portionText=s.portion?' ('+s.portion+')':'';
                             let typeTag=s.type!=='class'?'<span style="font-size:9px;font-weight:bold;">'+(typeLabel[s.type]||s.type)+'</span><br>':'';
-                            let className=getClassName(s.classId);
-                            let portionColor=s.portion?getPortionColor(s.subject,s.portion):getSubjectColor(s.subject);
+                            let portionColor=s.portion?getPortionColor(s.subject,s.portion):getClassBasedColor(s.subject,s.classId);
                             let idx=schedules.findIndex(x=>x===s);
-                            cellContent='<div class="'+cardCls+'" style="background:'+portionColor+'20;border-left-color:'+getTeacherColor(s.teacher)+'" ondblclick="openEditModal(this)"'
-                                +' data-idx="'+idx+'">'
-                                +typeTag+'<strong>'+getSubjectName(s.subject)+portionText+'</strong>'
-                                +'<small>🏫 '+className+'</small></div>';
+                            cellContent='<div class="'+cardCls+'" style="background:'+portionColor+'28;border-left-color:'+portionColor+'" ondblclick="openEditModal(this)" data-idx="'+idx+'">'+typeTag+'<strong style="color:'+portionColor+'">'+getSubjectName(s.subject)+portionText+'</strong><small>🏫 '+getClassName(s.classId)+'</small></div>';
                         } else if(blk.type==='gap'){
                             cellContent='<div class="gap-card '+blk.gapType+'">⏱️ '+blk.gapMinutes+' min gap</div>';
                         }
                     }
                     let isSat=day==='Saturday',isSun=day==='Sunday';
-                    let cellBg=isSat?'#fff3e0':isSun?'#fce4ec':'';
-                    html+='<td style="background:'+cellBg+'">'+cellContent+'</td>';
+                    html+='<td style="background:'+(isSat?'#fff3e0':isSun?'#fce4ec':'')+'">'+cellContent+'</td>';
                 }
                 html+='</tr>';
             }
@@ -923,7 +877,6 @@
             document.getElementById('teacher-class-info').innerHTML='🏫 Teaches: '+getTeacherClassString(teacherId);
             return;
         }
-
         // Class view
         let classId = parseInt(sid);
         let filtered = schedules.filter(s => s.classId === classId);
@@ -935,29 +888,20 @@
         html+='</tr></thead><tbody>';
         for(let p of periodsToUse){
             let isBreak=p.type==='break',isLunch=p.type==='lunch';
-            let rowClass=isBreak?'break-row':isLunch?'lunch-row':'';
-            html+='<tr class="'+rowClass+'"><td class="time-cell"><strong>'+p.name+'</strong><br><small>'+p.start+'-'+p.end+'</small></td>';
+            html+='<tr class="'+(isBreak?'break-row':isLunch?'lunch-row':'')+'"><td class="time-cell"><strong>'+p.name+'</strong><br><small>'+p.start+'-'+p.end+'</small></td>';
             for(let day of customDays){
                 let isSat=day==='Saturday',isSun=day==='Sunday';
-                let cellBg=isSat?'background:#fff3e0':isSun?'background:#fce4ec':'';
                 let ds=filtered.filter(s=>s.day===day&&s.periodName===p.name);
-                html+='<td style="'+cellBg+'">';
+                html+='<td style="'+(isSat?'background:#fff3e0':isSun?'background:#fce4ec':'')+'">';
                 for(let s of ds){
-                    let cardCls='schedule-card';
-                    if(s.type==='break') cardCls+=' break';
-                    else if(s.type==='lunch') cardCls+=' lunch';
-                    else if(s.type==='duty') cardCls+=' duty';
+                    let cardCls='schedule-card'; if(s.type==='break') cardCls+=' break'; else if(s.type==='lunch') cardCls+=' lunch'; else if(s.type==='duty') cardCls+=' duty';
                     let portionText=s.portion?' ('+s.portion+')':'';
                     let typeTag=s.type!=='class'?'<span style="font-size:9px;font-weight:bold;">'+(typeLabel[s.type]||s.type)+'</span><br>':'';
-                    let teacherLine='<small>👨‍🏫 '+getTeacherName(s.teacher)+'</small>';
                     let portionColor=s.portion?getPortionColor(s.subject,s.portion):getSubjectColor(s.subject);
                     let idx=schedules.findIndex(x=>x===s);
-                    html+='<div class="'+cardCls+'" style="background:'+portionColor+'20;border-left-color:'+getTeacherColor(s.teacher)+'" ondblclick="openEditModal(this)" data-idx="'+idx+'">'
-                        +typeTag+'<strong>'+getSubjectName(s.subject)+portionText+'</strong>'+teacherLine+'</div>';
+                    html+='<div class="'+cardCls+'" style="background:'+portionColor+'20;border-left-color:'+getTeacherColor(s.teacher)+'" ondblclick="openEditModal(this)" data-idx="'+idx+'">'+typeTag+'<strong>'+getSubjectName(s.subject)+portionText+'</strong><small>👨‍🏫 '+getTeacherName(s.teacher)+'</small></div>';
                 }
-                if(ds.length===0){
-                    html+='<div class="add-btn" onclick="openAddModal(\''+day+'\',\''+p.name+'\','+classId+')">+</div>';
-                }
+                if(ds.length===0) html+='<div class="add-btn" onclick="openAddModal(\''+day+'\',\''+p.name+'\','+classId+')">+</div>';
                 html+='</td>';
             }
             html+='</tr>';
@@ -1017,20 +961,12 @@
         let sids=Array.from(document.querySelectorAll('#custom-subject-checks input:checked')).map(cb=>parseInt(cb.value));
         let types=Array.from(document.querySelectorAll('#custom-type-checks input:checked')).map(cb=>cb.value);
         if(!cids.length){ document.getElementById('timetable-container').innerHTML='<p>Select at least one class</p>'; return; }
-        let timeSlotMap=new Map();
-        let cellData={};
+        let timeSlotMap=new Map(), cellData={};
         for(let cid of cids){
-            let classScheds=schedules.filter(s=>
-                s.classId===cid && s.day===day && types.includes(s.type) &&
-                (sids.length===0 || sids.includes(s.subject))
-            );
+            let classScheds=schedules.filter(s=>s.classId===cid&&s.day===day&&types.includes(s.type)&&(sids.length===0||sids.includes(s.subject)));
             for(let s of classScheds){
-                let start=s.startTime, end=s.endTime;
-                if(!start||!end){
-                    let ps=getPeriodsForClass(cid);
-                    let p=ps.find(p=>p.name===s.periodName);
-                    if(p){start=p.start;end=p.end;}
-                }
+                let start=s.startTime,end=s.endTime;
+                if(!start||!end){ let ps=getPeriodsForClass(cid),p=ps.find(p=>p.name===s.periodName); if(p){start=p.start;end=p.end;} }
                 if(!start||!end) continue;
                 start=start.padStart(5,'0'); end=end.padStart(5,'0');
                 let key=start+'|'+end;
@@ -1041,10 +977,7 @@
             }
         }
         let timeSlots=[...timeSlotMap.values()].sort((a,b)=>timeToMinutes(a.start)-timeToMinutes(b.start));
-        if(timeSlots.length===0){
-            document.getElementById('timetable-container').innerHTML='<p style="padding:10px;">No schedules found for selected filters on <strong>'+escapeHtml(day)+'</strong></p>';
-            return;
-        }
+        if(timeSlots.length===0){ document.getElementById('timetable-container').innerHTML='<p style="padding:10px;">No schedules found for selected filters on <strong>'+escapeHtml(day)+'</strong></p>'; return; }
         let typeLabel={class:'',duty:'🔔 Duty',break:'☕ Break',lunch:'🍽️ Lunch'};
         let html='<table class="timetable"><thead><tr><th>'+escapeHtml(day)+'</th>';
         for(let cid of cids) html+='<th>'+getClassName(cid)+'</th>';
@@ -1055,23 +988,15 @@
             for(let cid of cids){
                 let cellScheds=(cellData[cid+'|'+key])||[];
                 html+='<td>';
-                if(cellScheds.length===0){
-                    html+='<span style="color:#ccc;font-size:9px;">—</span>';
-                } else {
-                    for(let s of cellScheds){
-                        let cardCls='schedule-card';
-                        if(s.type==='break') cardCls+=' break';
-                        else if(s.type==='lunch') cardCls+=' lunch';
-                        else if(s.type==='duty') cardCls+=' duty';
-                        let portionText=s.portion?' ('+s.portion+')':'';
-                        let typeTag=s.type!=='class'?'<span style="font-size:9px;font-weight:bold;">'+(typeLabel[s.type]||s.type)+'</span><br>':'';
-                        let portionColor=s.portion?getPortionColor(s.subject,s.portion):getSubjectColor(s.subject);
-                        let idx=schedules.findIndex(x=>x===s);
-                        html+='<div class="'+cardCls+'" style="background:'+portionColor+'20;border-left-color:'+getTeacherColor(s.teacher)+'" ondblclick="openEditModal(this)" data-idx="'+idx+'">'
-                            +typeTag+'<strong>'+getSubjectName(s.subject)+portionText+'</strong>'
-                            +'<small>👨‍🏫 '+getTeacherName(s.teacher)+'</small></div>';
-                    }
-                }
+                if(cellScheds.length===0){ html+='<span style="color:#ccc;font-size:9px;">—</span>'; }
+                else { for(let s of cellScheds){
+                    let cardCls='schedule-card'; if(s.type==='break') cardCls+=' break'; else if(s.type==='lunch') cardCls+=' lunch'; else if(s.type==='duty') cardCls+=' duty';
+                    let portionText=s.portion?' ('+s.portion+')':'';
+                    let typeTag=s.type!=='class'?'<span style="font-size:9px;font-weight:bold;">'+(typeLabel[s.type]||s.type)+'</span><br>':'';
+                    let portionColor=s.portion?getPortionColor(s.subject,s.portion):getSubjectColor(s.subject);
+                    let idx=schedules.findIndex(x=>x===s);
+                    html+='<div class="'+cardCls+'" style="background:'+portionColor+'20;border-left-color:'+getTeacherColor(s.teacher)+'" ondblclick="openEditModal(this)" data-idx="'+idx+'">'+typeTag+'<strong>'+getSubjectName(s.subject)+portionText+'</strong><small>👨‍🏫 '+getTeacherName(s.teacher)+'</small></div>';
+                } }
                 html+='</td>';
             }
             html+='</tr>';
@@ -1079,13 +1004,361 @@
         html+='</tbody></table>';
         document.getElementById('timetable-container').innerHTML=html;
         let today=new Date();
-        let printedDate=today.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
         let logoHtml=schoolInfo.logo?'<div class="logo-container"><img src="'+schoolInfo.logo+'"></div>':'';
-        document.getElementById('timetable-header-container').innerHTML='<div class="timetable-header">'+logoHtml+'<div><div class="academic-year">'+schoolInfo.year+' Academic Year</div><div class="school-name">'+schoolInfo.name+'</div><div class="title">CUSTOM VIEW — '+escapeHtml(day)+'</div></div></div><div class="timetable-info"><div>Classes: '+cids.map(id=>getClassName(id)).join(', ')+'</div><div>Date: '+printedDate+'</div></div>';
+        document.getElementById('timetable-header-container').innerHTML='<div class="timetable-header">'+logoHtml+'<div><div class="academic-year">'+schoolInfo.year+' Academic Year</div><div class="school-name">'+schoolInfo.name+'</div><div class="title">CUSTOM VIEW — '+escapeHtml(day)+'</div></div></div><div class="timetable-info"><div>Classes: '+cids.map(id=>getClassName(id)).join(', ')+'</div><div>Date: '+today.toLocaleDateString('en-GB')+'</div></div>';
         document.getElementById('timetable-footer-container').innerHTML='<div class="timetable-footer">Phone: '+schoolInfo.phone+'</div>';
     }
 
-    function printTimetable(withoutTeacherNames,layout){ alert("Print ready – use browser print"); window.print(); }
+    // ======================== PRINT SYSTEM ========================
+    function buildPrintHTML(layout, hideTeachers) {
+        let sid = document.getElementById('view-select').value;
+        let today = new Date();
+        let printedDate = today.toLocaleDateString('en-GB', {day:'numeric', month:'long', year:'numeric'}) + ' (' + today.toLocaleDateString('en-GB', {weekday:'long'}) + ')';
+        let logoHtml = schoolInfo.logo ? '<div class="pt-logo"><img src="' + schoolInfo.logo + '"></div>' : '';
+        let displayName = '', titleText = 'TIMETABLE';
+        let dayNames = {Monday:'Monday',Tuesday:'Tuesday',Wednesday:'Wednesday',Thursday:'Thursday',Friday:'Friday',Saturday:'Saturday',Sunday:'Sunday'};
+        let typeLabel = {class:'', duty:'DUTY', break:'BREAK', lunch:'LUNCH'};
+
+        // Header
+        if (currentView === 'teacher' && sid) { displayName = getTeacherName(parseInt(sid)); titleText = 'Personal Timetable'; }
+        else if (currentView === 'class' && sid) { displayName = getClassName(parseInt(sid)); titleText = 'Class Timetable'; }
+        else if (currentView === 'custom') { titleText = 'Custom Timetable — ' + (document.getElementById('custom-day')?.value || ''); }
+
+        let headerHTML = '<div class="pt-header">' + logoHtml +
+            '<div class="pt-school-info">' +
+            '<div class="pt-school-name">' + escapeHtml(schoolInfo.name) + '</div>' +
+            '<div class="pt-year">Academic Year: ' + escapeHtml(schoolInfo.year) + '</div>' +
+            '<div class="pt-title">' + titleText + '</div>' +
+            '</div></div>';
+
+        let metaHTML = '<div class="pt-meta">' +
+            '<span>' + (currentView==='teacher' ? 'Teacher: ' : currentView==='class' ? 'Class: ' : '') + escapeHtml(displayName) + '</span>' +
+            '<span>Printed: ' + printedDate + '</span>' +
+            '</div>';
+
+        let tableHTML = '';
+
+        if (currentView === 'teacher' && sid) {
+            let teacherId = parseInt(sid);
+            let teacherScheds = schedules.filter(s => s.teacher === teacherId);
+            let dayMap = {};
+            customDays.forEach(day => dayMap[day] = []);
+            teacherScheds.forEach(s => { if(dayMap[s.day]) dayMap[s.day].push(s); });
+
+            // Build time-based rows for teacher view
+            let daysData = {}, maxBlocks = 0;
+            for (let day of customDays) {
+                let blocks = [];
+                for (let s of dayMap[day]) {
+                    let start = s.startTime, end = s.endTime;
+                    if (!start||!end) { let ps=getPeriodsForClass(s.classId),p=ps.find(p=>p.name===s.periodName); if(p){start=p.start;end=p.end;} }
+                    if (start&&end) blocks.push({start,end,type:'occupied',schedule:s});
+                }
+                blocks.sort((a,b) => timeToMinutes(a.start)-timeToMinutes(b.start));
+                let final = [], lastEnd = null;
+                for (let b of blocks) {
+                    if (lastEnd !== null) { let gap=timeToMinutes(b.start)-timeToMinutes(lastEnd); if(gap>5) final.push({start:lastEnd,end:b.start,type:'gap',gapMinutes:gap}); }
+                    final.push(b); lastEnd = b.end;
+                }
+                daysData[day] = final; maxBlocks = Math.max(maxBlocks, final.length);
+            }
+
+            if (layout === 'horizontal') {
+                // Days across top, time slots as rows
+                tableHTML = '<table class="pt-table" style="width:100%"><thead><tr>';
+                tableHTML += '<th class="pt-th-time">Time</th>';
+                for (let day of customDays) {
+                    let cls = day==='Saturday' ? 'pt-th-sat' : day==='Sunday' ? 'pt-th-sun' : 'pt-th-day';
+                    tableHTML += '<th class="' + cls + '">' + (dayNames[day]||day) + '</th>';
+                }
+                tableHTML += '</tr></thead><tbody>';
+                for (let row = 0; row < maxBlocks; row++) {
+                    let rowStart = '', rowEnd = '';
+                    for (let day of customDays) { let blk=daysData[day][row]; if(blk&&blk.start){rowStart=blk.start;rowEnd=blk.end;break;} }
+                    tableHTML += '<tr>';
+                    tableHTML += '<td class="pt-td-time">' + rowStart + (rowEnd ? '<br><small>' + rowEnd + '</small>' : '') + '</td>';
+                    for (let day of customDays) {
+                        let blk = daysData[day][row];
+                        let tdCls = day==='Saturday' ? 'pt-td-sat' : day==='Sunday' ? 'pt-td-sun' : '';
+                        tableHTML += '<td class="' + tdCls + '">';
+                        if (blk) {
+                            if (blk.type === 'occupied') {
+                                let s = blk.schedule;
+                                let cardCls = 'pt-card ' + (s.type==='break'?'pt-break':s.type==='lunch'?'pt-lunch':s.type==='duty'?'pt-duty':'');
+                                let subColor = s.portion ? getPortionColor(s.subject,s.portion) : getClassBasedColor(s.subject,s.classId);
+                                let teacherColor = getTeacherColor(s.teacher);
+                                tableHTML += '<div class="' + cardCls + '" style="background:' + subColor + '28;border-left-color:' + subColor + ';">';
+                                if (s.type !== 'class') tableHTML += '<span class="pt-type-tag">' + (typeLabel[s.type]||s.type).toUpperCase() + ' </span>';
+                                tableHTML += '<span class="pt-subject" style="color:' + subColor + ';">' + escapeHtml(getSubjectName(s.subject));
+                                if (s.portion) tableHTML += '<span class="pt-portion"> (' + escapeHtml(s.portion) + ')</span>';
+                                tableHTML += '</span>';
+                                tableHTML += '<span class="pt-teacher">🏫 ' + escapeHtml(getClassName(s.classId)) + '</span>';
+                                tableHTML += '</div>';
+                            } else if (blk.type === 'gap') {
+                                tableHTML += '<span style="color:#bbb;font-size:8px;">⏱ ' + blk.gapMinutes + 'min</span>';
+                            }
+                        }
+                        tableHTML += '</td>';
+                    }
+                    tableHTML += '</tr>';
+                }
+                tableHTML += '</tbody></table>';
+            } else {
+                // Vertical (Landscape): days as rows, time slots as columns
+                // Collect ALL unique time slots (including gaps)
+                let allSlots = new Map();
+                for (let day of customDays) {
+                    for (let blk of daysData[day]) {
+                        if (blk.start && blk.end) {
+                            let key = blk.start + '|' + blk.end;
+                            if (!allSlots.has(key)) allSlots.set(key, { start:blk.start, end:blk.end, isGap: blk.type==='gap', gapMinutes: blk.gapMinutes||0 });
+                        }
+                    }
+                }
+                let slots = [...allSlots.values()].sort((a,b) => timeToMinutes(a.start) - timeToMinutes(b.start));
+                tableHTML = '<div class="pt-vertical-scaler" id="pt-vert-scaler"><table class="pt-table" id="pt-vert-table"><thead><tr><th class="pt-th-time">Day</th>';
+                for (let slot of slots) {
+                    if (slot.isGap) {
+                        tableHTML += '<th style="background:#e0e0e0;color:#666;font-size:8px;min-width:30px;padding:3px 2px;">⏱<br><small>' + slot.gapMinutes + 'm</small></th>';
+                    } else {
+                        tableHTML += '<th class="pt-th-day" style="min-width:52px;">' + slot.start + '<br><small>' + slot.end + '</small></th>';
+                    }
+                }
+                tableHTML += '</tr></thead><tbody>';
+                for (let day of customDays) {
+                    let dayBg = day==='Saturday' ? '#fff8f0' : day==='Sunday' ? '#fff0f5' : '#f5f5f5';
+                    let dayLabel = day==='Saturday' ? '<span style="color:#e65100;">'+day.substring(0,3).toUpperCase()+'</span>'
+                                 : day==='Sunday'   ? '<span style="color:#c2185b;">'+day.substring(0,3).toUpperCase()+'</span>'
+                                 : day.substring(0,3).toUpperCase();
+                    tableHTML += '<tr><td class="pt-td-time" style="background:' + dayBg + ';">' + dayLabel + '</td>';
+                    for (let slot of slots) {
+                        let blk = daysData[day].find(b => b.start===slot.start && b.end===slot.end);
+                        let tdCls = day==='Saturday' ? 'pt-td-sat' : day==='Sunday' ? 'pt-td-sun' : '';
+                        if (slot.isGap) {
+                            // Gap column — show gap indicator if this day also has a gap here
+                            let hasGap = daysData[day].find(b => b.type==='gap' && b.start===slot.start);
+                            tableHTML += '<td style="background:#f9f9f9;text-align:center;">' + (hasGap ? '<span style="color:#bbb;font-size:8px;">—</span>' : '') + '</td>';
+                        } else {
+                            tableHTML += '<td class="' + tdCls + '">';
+                            if (blk && blk.type==='occupied') {
+                                let s = blk.schedule;
+                                let cardCls = 'pt-card ' + (s.type==='break'?'pt-break':s.type==='lunch'?'pt-lunch':s.type==='duty'?'pt-duty':'');
+                                let subColor = s.portion ? getPortionColor(s.subject,s.portion) : getClassBasedColor(s.subject,s.classId);
+                                tableHTML += '<div class="' + cardCls + '" style="background:' + subColor + '28;border-left-color:' + subColor + ';">';
+                                if (s.type !== 'class') tableHTML += '<span class="pt-type-tag">' + (typeLabel[s.type]||s.type).toUpperCase() + ' </span>';
+                                tableHTML += '<span class="pt-subject" style="color:' + subColor + ';">' + escapeHtml(getSubjectName(s.subject));
+                                if (s.portion) tableHTML += '<span class="pt-portion"> (' + escapeHtml(s.portion) + ')</span>';
+                                tableHTML += '</span>';
+                                tableHTML += '<span class="pt-teacher">🏫 ' + escapeHtml(getClassName(s.classId)) + '</span>';
+                                tableHTML += '</div>';
+                            }
+                            tableHTML += '</td>';
+                        }
+                    }
+                    tableHTML += '</tr>';
+                }
+                tableHTML += '</tbody></table></div>';
+            }
+
+        } else if (currentView === 'class' && sid) {
+            let classId = parseInt(sid);
+            let filtered = schedules.filter(s => s.classId === classId);
+            let periodsToUse = getPeriodsForClass(classId);
+
+            if (layout === 'horizontal') {
+                // Periods as rows, days as columns
+                tableHTML = '<table class="pt-table" style="width:100%"><thead><tr><th class="pt-th-time">Period</th>';
+                for (let day of customDays) {
+                    let cls = day==='Saturday'?'pt-th-sat':day==='Sunday'?'pt-th-sun':'pt-th-day';
+                    tableHTML += '<th class="' + cls + '">' + (dayNames[day]||day) + '</th>';
+                }
+                tableHTML += '</tr></thead><tbody>';
+                for (let p of periodsToUse) {
+                    let isBreak=p.type==='break', isLunch=p.type==='lunch';
+                    let rowCls = isBreak ? 'pt-break-row' : isLunch ? 'pt-lunch-row' : '';
+                    tableHTML += '<tr class="' + rowCls + '"><td class="pt-td-time"><strong>' + escapeHtml(p.name) + '</strong><br><small>' + p.start + '-' + p.end + '</small></td>';
+                    for (let day of customDays) {
+                        let tdCls = day==='Saturday'?'pt-td-sat':day==='Sunday'?'pt-td-sun':'';
+                        let ds = filtered.filter(s=>s.day===day&&s.periodName===p.name);
+                        tableHTML += '<td class="' + tdCls + '">';
+                        for (let s of ds) {
+                            let cardCls = 'pt-card ' + (s.type==='break'?'pt-break':s.type==='lunch'?'pt-lunch':s.type==='duty'?'pt-duty':'');
+                            let subColor = s.portion?getPortionColor(s.subject,s.portion):getSubjectColor(s.subject);
+                            let teacherColor = getTeacherColor(s.teacher);
+                            tableHTML += '<div class="' + cardCls + '" style="background:' + subColor + '22;border-left-color:' + teacherColor + ';">';
+                            if (s.type !== 'class') tableHTML += '<span class="pt-type-tag">' + (typeLabel[s.type]||s.type).toUpperCase() + ' </span>';
+                            tableHTML += '<span class="pt-subject">' + escapeHtml(getSubjectName(s.subject));
+                            if (s.portion) tableHTML += '<span class="pt-portion"> (' + escapeHtml(s.portion) + ')</span>';
+                            tableHTML += '</span>';
+                            if (!hideTeachers) tableHTML += '<span class="pt-teacher">👨‍🏫 ' + escapeHtml(getTeacherName(s.teacher)) + '</span>';
+                            tableHTML += '</div>';
+                        }
+                        tableHTML += '</td>';
+                    }
+                    tableHTML += '</tr>';
+                }
+                tableHTML += '</tbody></table>';
+            } else {
+                // Vertical (Landscape): days as rows, periods as columns
+                tableHTML = '<div class="pt-vertical-scaler" id="pt-vert-scaler"><table class="pt-table" id="pt-vert-table"><thead><tr><th class="pt-th-time">Day</th>';
+                for (let p of periodsToUse) {
+                    let pCls = p.type==='break' ? 'pt-th-sat' : p.type==='lunch' ? 'pt-th-sun' : 'pt-th-day';
+                    tableHTML += '<th class="' + pCls + '" style="min-width:50px;">' + escapeHtml(p.name) + '<br><small>' + p.start + '</small></th>';
+                }
+                tableHTML += '</tr></thead><tbody>';
+                for (let day of customDays) {
+                    let dayBg = day==='Saturday' ? '#fff8f0' : day==='Sunday' ? '#fff0f5' : '#f5f5f5';
+                    let dayLabel = day==='Saturday' ? '<span style="color:#e65100;">' + day.substring(0,3).toUpperCase() + '</span>'
+                                 : day==='Sunday'   ? '<span style="color:#c2185b;">' + day.substring(0,3).toUpperCase() + '</span>'
+                                 : day.substring(0,3).toUpperCase();
+                    tableHTML += '<tr><td class="pt-td-time" style="background:' + dayBg + ';">' + dayLabel + '</td>';
+                    for (let p of periodsToUse) {
+                        let isBreak = p.type==='break', isLunch = p.type==='lunch';
+                        let tdBg = isBreak ? 'background:#fff8e1;' : isLunch ? 'background:#fce4ec;' : '';
+                        let tdCls = day==='Saturday' ? 'pt-td-sat' : day==='Sunday' ? 'pt-td-sun' : '';
+                        let ds = filtered.filter(s => s.day===day && s.periodName===p.name);
+                        tableHTML += '<td class="' + tdCls + '" style="' + (tdCls ? '' : tdBg) + '">';
+                        if (ds.length === 0 && (isBreak || isLunch)) {
+                            // Show break/lunch label even if no schedule entry
+                            tableHTML += '<span style="font-size:8px;color:#999;">' + (isBreak ? '☕' : '🍽️') + '</span>';
+                        }
+                        for (let s of ds) {
+                            let cardCls = 'pt-card ' + (s.type==='break'?'pt-break':s.type==='lunch'?'pt-lunch':s.type==='duty'?'pt-duty':'');
+                            let subColor = s.portion ? getPortionColor(s.subject,s.portion) : getSubjectColor(s.subject);
+                            let teacherColor = getTeacherColor(s.teacher);
+                            tableHTML += '<div class="' + cardCls + '" style="background:' + subColor + '22;border-left-color:' + teacherColor + ';">';
+                            if (s.type !== 'class') tableHTML += '<span class="pt-type-tag">' + (typeLabel[s.type]||s.type).toUpperCase() + ' </span>';
+                            tableHTML += '<span class="pt-subject">' + escapeHtml(getSubjectName(s.subject));
+                            if (s.portion) tableHTML += '<span class="pt-portion"> (' + escapeHtml(s.portion) + ')</span>';
+                            tableHTML += '</span>';
+                            if (!hideTeachers) tableHTML += '<span class="pt-teacher">👨‍🏫 ' + escapeHtml(getTeacherName(s.teacher)) + '</span>';
+                            tableHTML += '</div>';
+                        }
+                        tableHTML += '</td>';
+                    }
+                    tableHTML += '</tr>';
+                }
+                tableHTML += '</tbody></table></div>';
+            }
+
+        } else if (currentView === 'custom') {
+            // Custom view print
+            let day = document.getElementById('custom-day')?.value || customDays[0];
+            let cids = Array.from(document.querySelectorAll('#custom-class-checks input:checked')).map(cb=>parseInt(cb.value));
+            let sids = Array.from(document.querySelectorAll('#custom-subject-checks input:checked')).map(cb=>parseInt(cb.value));
+            let types = Array.from(document.querySelectorAll('#custom-type-checks input:checked')).map(cb=>cb.value);
+            let timeSlotMap = new Map(), cellData = {};
+            for (let cid of cids) {
+                let classScheds = schedules.filter(s=>s.classId===cid&&s.day===day&&types.includes(s.type)&&(sids.length===0||sids.includes(s.subject)));
+                for (let s of classScheds) {
+                    let start=s.startTime,end=s.endTime;
+                    if(!start||!end){let ps=getPeriodsForClass(cid),p=ps.find(p=>p.name===s.periodName);if(p){start=p.start;end=p.end;}}
+                    if(!start||!end) continue;
+                    start=start.padStart(5,'0');end=end.padStart(5,'0');
+                    let key=start+'|'+end;
+                    if(!timeSlotMap.has(key)) timeSlotMap.set(key,{start,end});
+                    let cellKey=cid+'|'+key;
+                    if(!cellData[cellKey]) cellData[cellKey]=[];
+                    cellData[cellKey].push(s);
+                }
+            }
+            let timeSlots=[...timeSlotMap.values()].sort((a,b)=>timeToMinutes(a.start)-timeToMinutes(b.start));
+            tableHTML = '<table class="pt-table" style="width:100%"><thead><tr><th class="pt-th-time">' + escapeHtml(day) + '</th>';
+            for (let cid of cids) tableHTML += '<th class="pt-th-day">' + getClassName(cid) + '</th>';
+            tableHTML += '</tr></thead><tbody>';
+            for (let slot of timeSlots) {
+                let key = slot.start+'|'+slot.end;
+                tableHTML += '<tr><td class="pt-td-time"><strong>' + slot.start + '</strong><br><small>' + slot.end + '</small></td>';
+                for (let cid of cids) {
+                    let cellScheds = (cellData[cid+'|'+key])||[];
+                    tableHTML += '<td>';
+                    if (!cellScheds.length) { tableHTML += '<span style="color:#ddd;font-size:8px;">—</span>'; }
+                    else for (let s of cellScheds) {
+                        let cardCls='pt-card '+(s.type==='break'?'pt-break':s.type==='lunch'?'pt-lunch':s.type==='duty'?'pt-duty':'');
+                        let subColor=s.portion?getPortionColor(s.subject,s.portion):getSubjectColor(s.subject);
+                        let teacherColor=getTeacherColor(s.teacher);
+                        tableHTML+='<div class="'+cardCls+'" style="background:'+subColor+'22;border-left-color:'+teacherColor+';">';
+                        if(s.type!=='class') tableHTML+='<span class="pt-type-tag">'+(typeLabel[s.type]||s.type).toUpperCase()+' </span>';
+                        tableHTML+='<span class="pt-subject">'+escapeHtml(getSubjectName(s.subject));
+                        if(s.portion) tableHTML+='<span class="pt-portion"> ('+escapeHtml(s.portion)+')</span>';
+                        tableHTML+='</span>';
+                        if(!hideTeachers) tableHTML+='<span class="pt-teacher">👨‍🏫 '+escapeHtml(getTeacherName(s.teacher))+'</span>';
+                        tableHTML+='</div>';
+                    }
+                    tableHTML += '</td>';
+                }
+                tableHTML += '</tr>';
+            }
+            tableHTML += '</tbody></table>';
+        }
+
+        let footerHTML = '<div class="pt-footer">Phone: ' + escapeHtml(schoolInfo.phone) + ' &nbsp;|&nbsp; Printed: ' + printedDate + '</div>';
+
+        return '<div class="print-timetable-wrap">' + headerHTML + metaHTML + tableHTML + footerHTML + '</div>';
+    }
+
+    function openPrintPreview(layout, hideTeachers) {
+        _currentLayout = layout;
+        let html = buildPrintHTML(layout, hideTeachers);
+        document.getElementById('print-preview-content').innerHTML = html;
+        let overlay = document.getElementById('print-preview-overlay');
+        overlay.classList.add('active');
+        // Set landscape class for CSS @page override
+        if (layout === 'vertical') {
+            document.documentElement.classList.add('landscape-print');
+            // Size preview box as landscape A4 (297mm wide, 210mm tall)
+            document.getElementById('print-preview-box').style.width = '277mm';
+            document.getElementById('print-preview-box').style.minHeight = '190mm';
+        } else {
+            document.documentElement.classList.remove('landscape-print');
+            document.getElementById('print-preview-box').style.width = '210mm';
+            document.getElementById('print-preview-box').style.minHeight = '297mm';
+        }
+        // Auto-scale vertical table to fit preview box width
+        if (layout === 'vertical') {
+            setTimeout(() => {
+                let scaler = document.getElementById('pt-vert-scaler');
+                let table  = document.getElementById('pt-vert-table');
+                if (scaler && table) {
+                    // Reset first
+                    table.style.transform = '';
+                    scaler.style.height = '';
+                    let boxW = scaler.offsetWidth;
+                    let tblW = table.scrollWidth;
+                    if (tblW > boxW && boxW > 0) {
+                        let scale = Math.floor((boxW / tblW) * 1000) / 1000;
+                        table.style.transform = 'scale(' + scale + ')';
+                        table.style.transformOrigin = 'top left';
+                        scaler.style.height = Math.ceil(table.offsetHeight * scale) + 'px';
+                    }
+                }
+            }, 150);
+        }
+    }
+    function closePrintPreview() {
+        document.getElementById('print-preview-overlay').classList.remove('active');
+        document.documentElement.classList.remove('landscape-print');
+        document.getElementById('print-preview-box').style.width = '210mm';
+        document.getElementById('print-preview-box').style.minHeight = '297mm';
+    }
+    let _currentLayout = 'horizontal';
+    function doPrint() {
+        let styleId = 'landscape-page-style';
+        let existing = document.getElementById(styleId);
+        if (existing) existing.remove();
+        if (_currentLayout === 'vertical') {
+            let s = document.createElement('style');
+            s.id = styleId;
+            s.textContent = '@page { size: A4 landscape; margin: 8mm; }';
+            document.head.appendChild(s);
+        }
+        window.print();
+        // Clean up after print dialog closes
+        setTimeout(() => {
+            let el = document.getElementById(styleId);
+            if (el) el.remove();
+        }, 2000);
+    }
 
     // ======================== TEACHER CRUD ========================
     function loadTeacherForEdit(){ let id=document.getElementById('edit-teacher-select').value; if(!id) return; let t=teachers.find(x=>x.id==parseInt(id)); if(t){ document.getElementById('teacher-name').value=t.name; document.getElementById('teacher-color').value=t.color; document.getElementById('teacher-name').setAttribute('data-edit-id',t.id); document.querySelectorAll('#teacher-subjects-list input').forEach(cb=>{ cb.checked=t.subjectIds?.includes(parseInt(cb.value)); }); updateTeacherAvailableList(t.id); } }
@@ -1128,98 +1401,31 @@
         document.getElementById('modal-delete-btn').style.display = 'none';
         document.getElementById('modal-title').textContent = '➕ Add Schedule';
         let subjectSelect = document.getElementById('modal-subject');
-        subjectSelect.innerHTML = '<option value="">-- Select Subject --</option>' +
-            [...subjects].sort((a,b) => a.name.localeCompare(b.name))
-                         .map(s => '<option value="' + s.id + '">' + escapeHtml(s.name) + '</option>')
-                         .join('');
+        subjectSelect.innerHTML = '<option value="">-- Select Subject --</option>' + [...subjects].sort((a,b)=>a.name.localeCompare(b.name)).map(s=>'<option value="'+s.id+'">'+escapeHtml(s.name)+'</option>').join('');
         document.getElementById('modal-portion-group').style.display = 'none';
         document.getElementById('modal-warning').innerHTML = '';
         document.getElementById('modal-teacher').innerHTML = '<option value="">-- First select subject --</option>';
         document.getElementById('schedule-modal').classList.add('active');
     }
-
     function openEditModal(el){
         let idx = parseInt(el.getAttribute('data-idx'));
-        if(isNaN(idx) || idx < 0 || idx >= schedules.length){ showToast("Schedule not found","error"); return; }
+        if(isNaN(idx)||idx<0||idx>=schedules.length){ showToast("Schedule not found","error"); return; }
         let schedule = schedules[idx];
         modalContext = { day:schedule.day, periodName:schedule.periodName, classId:schedule.classId, editIndex:idx };
         document.getElementById('modal-edit-index').value = idx;
         document.getElementById('modal-delete-btn').style.display = 'block';
         document.getElementById('modal-title').textContent = '✏️ Edit Schedule';
         let subjectSelect = document.getElementById('modal-subject');
-        subjectSelect.innerHTML = '<option value="">-- Select Subject --</option>' +
-            [...subjects].sort((a,b) => a.name.localeCompare(b.name))
-                         .map(s => '<option value="' + s.id + '">' + escapeHtml(s.name) + '</option>')
-                         .join('');
+        subjectSelect.innerHTML = '<option value="">-- Select Subject --</option>' + [...subjects].sort((a,b)=>a.name.localeCompare(b.name)).map(s=>'<option value="'+s.id+'">'+escapeHtml(s.name)+'</option>').join('');
         subjectSelect.value = schedule.subject;
         updateModalTeachersBySubject();
-        setTimeout(() => {
-            document.getElementById('modal-teacher').value = schedule.teacher;
-            document.getElementById('modal-type').value = schedule.type;
-            updatePortionDropdown();
-            if(schedule.portion) setTimeout(() => {
-                let p = document.getElementById('modal-portion');
-                if(p) p.value = schedule.portion;
-            }, 80);
-        }, 80);
+        setTimeout(()=>{ document.getElementById('modal-teacher').value = schedule.teacher; document.getElementById('modal-type').value = schedule.type; updatePortionDropdown(); if(schedule.portion) setTimeout(()=>{ let p=document.getElementById('modal-portion'); if(p) p.value=schedule.portion; },80); },80);
         document.getElementById('schedule-modal').classList.add('active');
     }
-
-    function updateModalTeachersBySubject(){
-        let subjectId = document.getElementById('modal-subject').value;
-        let teacherSelect = document.getElementById('modal-teacher');
-        if(!subjectId){ teacherSelect.innerHTML='<option value="">-- First select subject --</option>'; return; }
-        let eligible = teachers.filter(t => t.subjectIds && t.subjectIds.includes(parseInt(subjectId)));
-        eligible.sort((a,b) => a.name.localeCompare(b.name));
-        if(eligible.length === 0){
-            teacherSelect.innerHTML = '<option value="">-- No teacher assigned --</option>';
-        } else {
-            teacherSelect.innerHTML = '<option value="">-- Select Teacher --</option>' +
-                eligible.map(t => '<option value="' + t.id + '">' + escapeHtml(t.name) + '</option>').join('');
-        }
-    }
-    function updatePortionDropdown(){
-        let subjectId = document.getElementById('modal-subject').value;
-        if(!subjectId){ document.getElementById('modal-portion-group').style.display='none'; return; }
-        let subject = subjects.find(s => s.id == parseInt(subjectId));
-        let portionGroup = document.getElementById('modal-portion-group');
-        if(subject && subject.portions && subject.portions.length > 0){
-            portionGroup.style.display = 'block';
-            document.getElementById('modal-portion').innerHTML = subject.portions.map(p => '<option value="'+p+'">'+p+'</option>').join('');
-        } else portionGroup.style.display = 'none';
-    }
-    function deleteCurrentSchedule(){
-        let idx = parseInt(document.getElementById('modal-edit-index').value);
-        if(idx >= 0 && idx < schedules.length){
-            if(confirm("Delete this schedule?")){ schedules.splice(idx,1); saveToLocal(); forceCloudSync(); updateAll(); closeModal(); showToast("Deleted"); }
-        }
-    }
-    function saveSchedule(){
-        let subjectId = document.getElementById('modal-subject').value;
-        if(!subjectId){ showToast("Select subject","error"); return; }
-        let teacherId = document.getElementById('modal-teacher').value;
-        if(!teacherId){ showToast("Select teacher","error"); return; }
-        let warn = getAvailabilityWarning(parseInt(teacherId), modalContext.day, modalContext.periodName);
-        if(warn && !confirm(warn+"\nContinue anyway?")) return;
-        let portion = null;
-        if(document.getElementById('modal-portion-group').style.display !== 'none') portion = document.getElementById('modal-portion').value;
-        let type = document.getElementById('modal-type').value;
-        let periods = getPeriodsForClass(modalContext.classId);
-        let period = periods.find(p => p.name === modalContext.periodName);
-        if(!period){ showToast("Period not found","error"); return; }
-        let editIdx = parseInt(document.getElementById('modal-edit-index').value);
-        if(editIdx >= 0 && editIdx < schedules.length){
-            schedules[editIdx] = {...schedules[editIdx], teacher:parseInt(teacherId), subject:parseInt(subjectId), portion, type, startTime:period.start, endTime:period.end};
-            showToast("Updated");
-        } else {
-            if(schedules.find(s => s.classId == modalContext.classId && s.day === modalContext.day && s.periodName === modalContext.periodName)){
-                showToast("❌ Slot already has a schedule!","error"); return;
-            }
-            schedules.push({teacher:parseInt(teacherId), classId:modalContext.classId, subject:parseInt(subjectId), portion, day:modalContext.day, periodName:modalContext.periodName, startTime:period.start, endTime:period.end, type});
-            showToast("Added");
-        }
-        saveToLocal(); forceCloudSync(); updateAll(); closeModal();
-    }
+    function updateModalTeachersBySubject(){ let subjectId=document.getElementById('modal-subject').value,teacherSelect=document.getElementById('modal-teacher'); if(!subjectId){ teacherSelect.innerHTML='<option value="">-- First select subject --</option>'; return; } let eligible=teachers.filter(t=>t.subjectIds&&t.subjectIds.includes(parseInt(subjectId))).sort((a,b)=>a.name.localeCompare(b.name)); teacherSelect.innerHTML=eligible.length===0?'<option value="">-- No teacher assigned --</option>':'<option value="">-- Select Teacher --</option>'+eligible.map(t=>'<option value="'+t.id+'">'+escapeHtml(t.name)+'</option>').join(''); }
+    function updatePortionDropdown(){ let subjectId=document.getElementById('modal-subject').value; if(!subjectId){ document.getElementById('modal-portion-group').style.display='none'; return; } let subject=subjects.find(s=>s.id==parseInt(subjectId)),portionGroup=document.getElementById('modal-portion-group'); if(subject&&subject.portions&&subject.portions.length>0){ portionGroup.style.display='block'; document.getElementById('modal-portion').innerHTML=subject.portions.map(p=>'<option value="'+p+'">'+p+'</option>').join(''); } else portionGroup.style.display='none'; }
+    function deleteCurrentSchedule(){ let idx=parseInt(document.getElementById('modal-edit-index').value); if(idx>=0&&idx<schedules.length){ if(confirm("Delete this schedule?")){ schedules.splice(idx,1); saveToLocal(); forceCloudSync(); updateAll(); closeModal(); showToast("Deleted"); } } }
+    function saveSchedule(){ let subjectId=document.getElementById('modal-subject').value; if(!subjectId){ showToast("Select subject","error"); return; } let teacherId=document.getElementById('modal-teacher').value; if(!teacherId){ showToast("Select teacher","error"); return; } let warn=getAvailabilityWarning(parseInt(teacherId),modalContext.day,modalContext.periodName); if(warn&&!confirm(warn+"\nContinue anyway?")) return; let portion=null; if(document.getElementById('modal-portion-group').style.display!=='none') portion=document.getElementById('modal-portion').value; let type=document.getElementById('modal-type').value; let periods=getPeriodsForClass(modalContext.classId),period=periods.find(p=>p.name===modalContext.periodName); if(!period){ showToast("Period not found","error"); return; } let editIdx=parseInt(document.getElementById('modal-edit-index').value); if(editIdx>=0&&editIdx<schedules.length){ schedules[editIdx]={...schedules[editIdx],teacher:parseInt(teacherId),subject:parseInt(subjectId),portion,type,startTime:period.start,endTime:period.end}; showToast("Updated"); } else { if(schedules.find(s=>s.classId==modalContext.classId&&s.day===modalContext.day&&s.periodName===modalContext.periodName)){ showToast("❌ Slot already has a schedule!","error"); return; } schedules.push({teacher:parseInt(teacherId),classId:modalContext.classId,subject:parseInt(subjectId),portion,day:modalContext.day,periodName:modalContext.periodName,startTime:period.start,endTime:period.end,type}); showToast("Added"); } saveToLocal(); forceCloudSync(); updateAll(); closeModal(); }
     function closeModal(){ document.getElementById('schedule-modal').classList.remove('active'); }
 
     // ======================== UI UPDATE ========================
@@ -1229,8 +1435,7 @@
         container.innerHTML = '';
         for(let t of ordered){
             let div = document.createElement('div');
-            div.className = 'item';
-            div.setAttribute('data-id', t.id);
+            div.className = 'item'; div.setAttribute('data-id', t.id);
             div.innerHTML = '<div style="display:flex;align-items:center;gap:8px;flex:1;"><span class="drag-handle">☰</span><div><strong>'+escapeHtml(t.name)+'</strong><br><small>'+(t.subjectIds?.map(id=>getSubjectName(id)).join(', ')||'None')+'</small></div><div style="width:20px;height:20px;background:'+t.color+';border-radius:4px;margin-left:4px;"></div></div><div><button class="edit-btn" onclick="editTeacherById('+t.id+')">Edit</button><button class="delete-btn" onclick="deleteTeacher('+teachers.findIndex(orig=>orig.id===t.id)+')">Delete</button></div>';
             container.appendChild(div);
         }
@@ -1239,12 +1444,9 @@
         document.getElementById('subjects-list').innerHTML = subjects.map((s,i)=>'<div class="item"><div><strong>'+escapeHtml(s.name)+'</strong><br><small>'+s.code+'</small><div style="width:20px;height:20px;background:'+s.color+';border-radius:4px;display:inline-block;margin-left:4px;"></div>'+(s.portions?.length?'<br><small>📂 '+s.portions.join(', ')+'</small>':'')+'</div><div><button class="edit-btn" onclick="editSubjectById('+s.id+')">Edit</button><button class="delete-btn" onclick="deleteSubject('+i+')">Delete</button></div></div>').join('') || 'No subjects';
         document.getElementById('holidays-list').innerHTML = holidays.map((h,i)=>'<div class="item"><div><strong>🎉 '+escapeHtml(h.name)+'</strong><br><small>'+h.date+'</small></div><button class="delete-btn" onclick="deleteHoliday('+i+')">Delete</button></div>').join('') || 'No holidays';
         document.getElementById('days-list').innerHTML = customDays.map((d,i)=>'<div class="item"><span>📅 '+d+'</span><button class="delete-btn" onclick="deleteDay('+i+')">Delete</button></div>').join('');
-        let periodSel = document.getElementById('period-class-select');
-        if(periodSel) periodSel.innerHTML = '<option value="">-- Select Class --</option>' + classes.map(c=>'<option value="'+c.id+'">'+c.name+'-'+c.section+'</option>').join('');
-        let subsCont = document.getElementById('teacher-subjects-list');
-        if(subsCont) subsCont.innerHTML = subjects.map(s=>'<label><input type="checkbox" value="'+s.id+'"> 📚 '+escapeHtml(s.name)+'</label>').join('');
-        let editSel = document.getElementById('edit-teacher-select');
-        if(editSel) editSel.innerHTML = '<option value="">-- Select Teacher --</option>' + getOrderedTeachers().map(t=>'<option value="'+t.id+'">'+escapeHtml(t.name)+'</option>').join('');
+        let periodSel = document.getElementById('period-class-select'); if(periodSel) periodSel.innerHTML = '<option value="">-- Select Class --</option>' + classes.map(c=>'<option value="'+c.id+'">'+c.name+'-'+c.section+'</option>').join('');
+        let subsCont = document.getElementById('teacher-subjects-list'); if(subsCont) subsCont.innerHTML = subjects.map(s=>'<label><input type="checkbox" value="'+s.id+'"> 📚 '+escapeHtml(s.name)+'</label>').join('');
+        let editSel = document.getElementById('edit-teacher-select'); if(editSel) editSel.innerHTML = '<option value="">-- Select Teacher --</option>' + getOrderedTeachers().map(t=>'<option value="'+t.id+'">'+escapeHtml(t.name)+'</option>').join('');
         updateGlobalPeriodsList();
     }
     function editTeacherById(id){ let t=teachers.find(x=>x.id==id); if(t){ document.getElementById('teacher-name').value=t.name; document.getElementById('teacher-color').value=t.color; document.getElementById('teacher-name').setAttribute('data-edit-id',t.id); document.querySelectorAll('#teacher-subjects-list input').forEach(cb=>{ cb.checked=t.subjectIds?.includes(parseInt(cb.value)); }); updateTeacherAvailableList(t.id); document.getElementById('edit-teacher-select').value=t.id; showToast("Loaded"); } }
@@ -1264,41 +1466,27 @@
     function importData(){ document.getElementById('import-file').click(); document.getElementById('import-file').onchange=e=>{ let f=e.target.files[0],r=new FileReader(); r.onload=ev=>{ let d=JSON.parse(ev.target.result); teachers=d.teachers||[]; classes=d.classes||[]; subjects=d.subjects||[]; schedules=d.schedules||[]; holidays=d.holidays||[]; classPeriods=d.classPeriods||{}; customDays=d.customDays||['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']; schoolInfo=d.schoolInfo||{name:"Shining Stars - Ma Thwe Private High School",year:"2026-2027",phone:"09-123456789",logo:null}; if(d.globalPeriods) globalPeriods=d.globalPeriods; if(d.teacherOrder) teacherOrder=d.teacherOrder; updateLogoPreview(); saveToLocal(); forceCloudSync(); updateAll(); showToast("Imported"); }; r.readAsText(f); }; }
     function autoCode(){ let n=document.getElementById('subject-name').value; if(n) document.getElementById('subject-code').value=n.substring(0,3).toUpperCase(); }
 
+    // Close print preview with ESC
+    document.addEventListener('keydown', e => { if(e.key==='Escape') closePrintPreview(); });
+
     window.addEventListener('online', ()=>{ if(currentUser) manualRetrySync(); });
     window.addEventListener('offline', ()=>{ updateSyncStatusDisplay('⚠️ Offline (local only)','offline',lastCloudSyncTime); showToast("Offline mode","warning"); });
 
     // ======================== FIREBASE SAFE INIT ========================
     function initFirebase() {
-        if (typeof firebase === 'undefined') {
-            setTimeout(initFirebase, 500);
-            return;
-        }
+        if (typeof firebase === 'undefined') { setTimeout(initFirebase, 500); return; }
         try {
             firebase.initializeApp(firebaseConfig);
             db = firebase.firestore();
             firebase.auth().onAuthStateChanged(async (user) => {
-                if (user) {
-                    currentUser = user;
-                    updateSyncStatusDisplay('🔄 Authenticated','syncing', lastCloudSyncTime);
-                    manualRetrySync();
-                } else {
-                    firebase.auth().signInAnonymously().catch(e => {
-                        console.warn('Anonymous auth failed:', e.message);
-                        updateSyncStatusDisplay('⚠️ Auth failed — local only','offline', lastCloudSyncTime);
-                    });
-                }
+                if (user) { currentUser = user; updateSyncStatusDisplay('🔄 Authenticated','syncing', lastCloudSyncTime); manualRetrySync(); }
+                else { firebase.auth().signInAnonymously().catch(e => { console.warn('Anonymous auth failed:', e.message); updateSyncStatusDisplay('⚠️ Auth failed — local only','offline', lastCloudSyncTime); }); }
             });
-        } catch(e) {
-            console.warn('Firebase init error:', e.message);
-            updateSyncStatusDisplay('⚠️ Firebase error — local only','offline', null);
-        }
+        } catch(e) { console.warn('Firebase init error:', e.message); updateSyncStatusDisplay('⚠️ Firebase error — local only','offline', null); }
     }
 
     document.addEventListener('DOMContentLoaded', () => {
-        loadFromLocal();
-        updateAll();
-        changeViewType('teacher');
-        initFirebase();
+        loadFromLocal(); updateAll(); changeViewType('teacher'); initFirebase();
     });
 
     window.switchTab=switchTab; window.addClass=addClass; window.quickAdd=quickAdd;
@@ -1309,7 +1497,8 @@
     window.openAddModal=openAddModal; window.openEditModal=openEditModal;
     window.saveSchedule=saveSchedule; window.closeModal=closeModal;
     window.updateModalTeachersBySubject=updateModalTeachersBySubject; window.updatePortionDropdown=updatePortionDropdown;
-    window.deleteCurrentSchedule=deleteCurrentSchedule; window.printTimetable=printTimetable;
+    window.deleteCurrentSchedule=deleteCurrentSchedule;
+    window.openPrintPreview=openPrintPreview; window.closePrintPreview=closePrintPreview; window.doPrint=doPrint;
     window.saveSchoolInfo=saveSchoolInfo; window.uploadLogo=uploadLogo; window.removeLogo=removeLogo;
     window.addGlobalPeriod=addGlobalPeriod; window.deleteGlobalPeriod=deleteGlobalPeriod; window.resetGlobalPeriods=resetGlobalPeriods;
     window.loadFromCloudManual=loadFromCloudManual; window.globalSave=globalSave;
