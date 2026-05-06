@@ -1440,7 +1440,67 @@
     function updateModalTeachersBySubject(){ let subjectId=document.getElementById('modal-subject').value,teacherSelect=document.getElementById('modal-teacher'); if(!subjectId){ teacherSelect.innerHTML='<option value="">-- First select subject --</option>'; return; } let eligible=teachers.filter(t=>t.subjectIds&&t.subjectIds.includes(parseInt(subjectId))).sort((a,b)=>a.name.localeCompare(b.name)); teacherSelect.innerHTML=eligible.length===0?'<option value="">-- No teacher assigned --</option>':'<option value="">-- Select Teacher --</option>'+eligible.map(t=>'<option value="'+t.id+'">'+escapeHtml(t.name)+'</option>').join(''); }
     function updatePortionDropdown(){ let subjectId=document.getElementById('modal-subject').value; if(!subjectId){ document.getElementById('modal-portion-group').style.display='none'; return; } let subject=subjects.find(s=>s.id==parseInt(subjectId)),portionGroup=document.getElementById('modal-portion-group'); if(subject&&subject.portions&&subject.portions.length>0){ portionGroup.style.display='block'; document.getElementById('modal-portion').innerHTML=subject.portions.map(p=>'<option value="'+p+'">'+p+'</option>').join(''); } else portionGroup.style.display='none'; }
     function deleteCurrentSchedule(){ let idx=parseInt(document.getElementById('modal-edit-index').value); if(idx>=0&&idx<schedules.length){ if(confirm("Delete this schedule?")){ schedules.splice(idx,1); saveToLocal(); forceCloudSync(); updateAll(); closeModal(); showToast("Deleted"); } } }
-    function saveSchedule(){ let subjectId=document.getElementById('modal-subject').value; if(!subjectId){ showToast("Select subject","error"); return; } let teacherId=document.getElementById('modal-teacher').value; if(!teacherId){ showToast("Select teacher","error"); return; } let warn=getAvailabilityWarning(parseInt(teacherId),modalContext.day,modalContext.periodName); if(warn&&!confirm(warn+"\nContinue anyway?")) return; let portion=null; if(document.getElementById('modal-portion-group').style.display!=='none') portion=document.getElementById('modal-portion').value; let type=document.getElementById('modal-type').value; let periods=getPeriodsForClass(modalContext.classId),period=periods.find(p=>p.name===modalContext.periodName); if(!period){ showToast("Period not found","error"); return; } let editIdx=parseInt(document.getElementById('modal-edit-index').value); if(editIdx>=0&&editIdx<schedules.length){ schedules[editIdx]={...schedules[editIdx],teacher:parseInt(teacherId),subject:parseInt(subjectId),portion,type,startTime:period.start,endTime:period.end}; showToast("Updated"); } else { if(schedules.find(s=>s.classId==modalContext.classId&&s.day===modalContext.day&&s.periodName===modalContext.periodName)){ showToast("❌ Slot already has a schedule!","error"); return; } schedules.push({teacher:parseInt(teacherId),classId:modalContext.classId,subject:parseInt(subjectId),portion,day:modalContext.day,periodName:modalContext.periodName,startTime:period.start,endTime:period.end,type}); showToast("Added"); } saveToLocal(); forceCloudSync(); updateAll(); closeModal(); }
+    
+    function checkConflicts(teacherId, day, start, end, ignoreIdx = -1) {
+        let conflicts = [];
+        let newStart = timeToMinutes(start);
+        let newEnd = timeToMinutes(end);
+        
+        schedules.forEach((s, idx) => {
+            if (idx === ignoreIdx) return;
+            if (s.teacher === teacherId && s.day === day) {
+                let sStart = timeToMinutes(s.startTime);
+                let sEnd = timeToMinutes(s.endTime);
+                
+                // Overlap logic: (StartA < EndB) and (EndA > StartB)
+                if (newStart < sEnd && newEnd > sStart) {
+                    conflicts.push(s);
+                }
+            }
+        });
+        return conflicts;
+    }
+
+    function saveSchedule(){
+        let subjectId=document.getElementById('modal-subject').value;
+        if(!subjectId){ showToast("Select subject","error"); return; }
+        let teacherId=document.getElementById('modal-teacher').value;
+        if(!teacherId){ showToast("Select teacher","error"); return; }
+        
+        let periods=getPeriodsForClass(modalContext.classId),period=periods.find(p=>p.name===modalContext.periodName);
+        if(!period){ showToast("Period not found","error"); return; }
+        
+        let editIdx=parseInt(document.getElementById('modal-edit-index').value);
+        
+        // Conflict Check
+        let conflicts = checkConflicts(parseInt(teacherId), modalContext.day, period.start, period.end, editIdx);
+        if (conflicts.length > 0) {
+            let msg = "⚠️ Conflict Detected!\nTeacher is already scheduled for:\n" + 
+                      conflicts.map(c => "- " + getClassName(c.classId) + " (" + c.startTime + "-" + c.endTime + ")").join("\n") + 
+                      "\n\nContinue anyway?";
+            if (!confirm(msg)) return;
+        }
+
+        let availWarn=getAvailabilityWarning(parseInt(teacherId),modalContext.day,modalContext.periodName);
+        if(availWarn&&!confirm(availWarn+"\nContinue anyway?")) return;
+        
+        let portion=null;
+        if(document.getElementById('modal-portion-group').style.display!=='none') portion=document.getElementById('modal-portion').value;
+        let type=document.getElementById('modal-type').value;
+        
+        if(editIdx>=0&&editIdx<schedules.length){
+            schedules[editIdx]={...schedules[editIdx],teacher:parseInt(teacherId),subject:parseInt(subjectId),portion,type,startTime:period.start,endTime:period.end};
+            showToast("Updated");
+        } else {
+            if(schedules.find(s=>s.classId==modalContext.classId&&s.day===modalContext.day&&s.periodName===modalContext.periodName)){
+                showToast("❌ Slot already has a schedule!","error");
+                return;
+            }
+            schedules.push({teacher:parseInt(teacherId),classId:modalContext.classId,subject:parseInt(subjectId),portion,day:modalContext.day,periodName:modalContext.periodName,startTime:period.start,endTime:period.end,type});
+            showToast("Added");
+        }
+        saveToLocal(); forceCloudSync(); updateAll(); closeModal();
+    }
     function closeModal(){ document.getElementById('schedule-modal').classList.remove('active'); }
 
     // ======================== UI UPDATE ========================
