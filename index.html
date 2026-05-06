@@ -395,8 +395,8 @@
         <!-- Classes -->
         <div id="classes-content" class="tab-content">
             <div class="card">
-                <h3>➕ Add Class</h3>
-                <div class="grid-3"><input id="class-name" placeholder="Class"><input id="section-name" placeholder="Section"><button onclick="addClass()">Add</button></div>
+                <h3>➕ Add / Edit Class</h3>
+                <div class="grid-3"><input id="class-name" placeholder="Class"><input id="section-name" placeholder="Section"><div style="display:flex;gap:4px;"><button onclick="addClass()">Save</button><button onclick="clearClassForm()" class="btn-warning">Clear</button></div></div>
                 <div>
                     <button class="btn-sm" onclick="quickAdd('G10','A')">G10-A</button>
                     <button class="btn-sm" onclick="quickAdd('G10','B')">G10-B</button>
@@ -1397,7 +1397,9 @@
     function updateGlobalPeriodsList(){ let cont=document.getElementById('global-periods-list'); if(cont) cont.innerHTML=globalPeriods.map((p,i)=>'<div class="global-period-item"><span><strong>'+p.name+'</strong> '+p.start+'-'+p.end+' '+p.type+'</span><button onclick="deleteGlobalPeriod('+i+')" class="btn-sm btn-danger">X</button></div>').join(''); let avail=document.getElementById('avail-period'); if(avail) avail.innerHTML=globalPeriods.map(p=>'<option value="'+p.name+'">'+p.name+' ('+p.start+'-'+p.end+')</option>').join(''); }
 
     // ======================== CLASSES, DAYS, HOLIDAYS ========================
-    function addClass(){ let n=document.getElementById('class-name').value,s=document.getElementById('section-name').value; if(!n||!s){ showToast("Both required","error"); return; } classes.push({id:Date.now(),name:n,section:s}); saveToLocal(); forceCloudSync(); updateAll(); document.getElementById('class-name').value=''; document.getElementById('section-name').value=''; }
+    function addClass(){ let n=document.getElementById('class-name').value.trim(),s=document.getElementById('section-name').value.trim(),editId=document.getElementById('class-name').getAttribute('data-edit-id'); if(!n||!s){ showToast("Both required","error"); return; } if(editId){ let idx=classes.findIndex(c=>c.id==parseInt(editId)); if(idx!==-1){ classes[idx]={...classes[idx],name:n,section:s}; showToast("Updated"); } } else { classes.push({id:Date.now(),name:n,section:s}); showToast("Added"); } saveToLocal(); forceCloudSync(); updateAll(); clearClassForm(); }
+    function editClassById(id){ let c=classes.find(x=>x.id==id); if(c){ document.getElementById('class-name').value=c.name; document.getElementById('section-name').value=c.section; document.getElementById('class-name').setAttribute('data-edit-id',c.id); showToast("Loaded"); } }
+    function clearClassForm(){ document.getElementById('class-name').value=''; document.getElementById('section-name').value=''; document.getElementById('class-name').removeAttribute('data-edit-id'); }
     function quickAdd(n,s){ if(!classes.find(c=>c.name===n&&c.section===s)){ classes.push({id:Date.now(),name:n,section:s}); saveToLocal(); forceCloudSync(); updateAll(); } }
     function deleteClass(i){ if(confirm("Delete?")){ classes.splice(i,1); saveToLocal(); forceCloudSync(); updateAll(); } }
     function deleteTeacher(i){ if(confirm("Delete teacher?")){ let removed=teachers[i]; teachers.splice(i,1); teacherOrder=teacherOrder.filter(id=>id!==removed.id); schedules=schedules.filter(s=>s.teacher!==removed.id); saveToLocal(); forceCloudSync(); updateAll(); } }
@@ -1453,7 +1455,7 @@
             container.appendChild(div);
         }
         if(container.children.length > 0) new Sortable(container, {handle:'.drag-handle', animation:150, onEnd:()=>saveTeacherOrder()});
-        document.getElementById('classes-list').innerHTML = classes.map((c,i)=>'<div class="item"><div><strong>'+c.name+'</strong><br><small>'+c.section+'</small></div><button class="delete-btn" onclick="deleteClass('+i+')">Delete</button></div>').join('') || 'No classes';
+        document.getElementById('classes-list').innerHTML = classes.map((c,i)=>'<div class="item"><div><strong>'+c.name+'</strong><br><small>'+c.section+'</small></div><div><button class="edit-btn" onclick="editClassById('+c.id+')">Edit</button><button class="delete-btn" onclick="deleteClass('+i+')">Delete</button></div></div>').join('') || 'No classes';
         document.getElementById('subjects-list').innerHTML = subjects.map((s,i)=>'<div class="item"><div><strong>'+escapeHtml(s.name)+'</strong><br><small>'+s.code+'</small><div style="width:20px;height:20px;background:'+s.color+';border-radius:4px;display:inline-block;margin-left:4px;"></div>'+(s.portions?.length?'<br><small>📂 '+s.portions.join(', ')+'</small>':'')+'</div><div><button class="edit-btn" onclick="editSubjectById('+s.id+')">Edit</button><button class="delete-btn" onclick="deleteSubject('+i+')">Delete</button></div></div>').join('') || 'No subjects';
         document.getElementById('holidays-list').innerHTML = holidays.map((h,i)=>'<div class="item"><div><strong>🎉 '+escapeHtml(h.name)+'</strong><br><small>'+h.date+'</small></div><button class="delete-btn" onclick="deleteHoliday('+i+')">Delete</button></div>').join('') || 'No holidays';
         document.getElementById('days-list').innerHTML = customDays.map((d,i)=>'<div class="item"><span>📅 '+d+'</span><button class="delete-btn" onclick="deleteDay('+i+')">Delete</button></div>').join('');
@@ -1502,7 +1504,7 @@
         loadFromLocal(); updateAll(); changeViewType('teacher'); initFirebase();
     });
 
-    window.switchTab=switchTab; window.addClass=addClass; window.quickAdd=quickAdd;
+    window.switchTab=switchTab; window.addClass=addClass; window.quickAdd=quickAdd; window.editClassById=editClassById; window.clearClassForm=clearClassForm;
     window.addSubject=addSubject; window.deleteTeacher=deleteTeacher; window.deleteClass=deleteClass;
     window.deleteSubject=deleteSubject; window.deleteHoliday=deleteHoliday; window.deleteDay=deleteDay;
     window.addHoliday=addHoliday; window.addDay=addDay; window.resetDays=resetDays;
