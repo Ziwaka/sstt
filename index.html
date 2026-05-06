@@ -823,7 +823,7 @@
             let dayMap = {};
             customDays.forEach(day => dayMap[day] = []);
             teacherScheds.forEach(s => { if(dayMap[s.day]) dayMap[s.day].push(s); });
-            let daysData = {}, maxBlocks = 0;
+            let daysData = {}, slotMap = new Map();
             for(let day of customDays){
                 let blocks = [];
                 for(let s of dayMap[day]){
@@ -837,21 +837,27 @@
                     if(lastEnd!==null){ let gap=timeToMinutes(b.start)-timeToMinutes(lastEnd); if(gap>0) final.push({start:lastEnd,end:b.start,type:'gap',gapMinutes:gap,gapType:gap<=15?'small':'large'}); }
                     final.push(b); lastEnd=b.end;
                 }
-                daysData[day]=final; maxBlocks=Math.max(maxBlocks,final.length);
+                daysData[day]=final;
+                final.forEach(blk => {
+                    let key = blk.start + '|' + blk.end;
+                    if(!slotMap.has(key)) slotMap.set(key, {start:blk.start, end:blk.end});
+                });
             }
+            let timeSlots = [...slotMap.values()].sort((a,b)=>{
+                let d = timeToMinutes(a.start) - timeToMinutes(b.start);
+                return d !== 0 ? d : timeToMinutes(a.end) - timeToMinutes(b.end);
+            });
             let dayNames={Monday:'MON',Tuesday:'TUE',Wednesday:'WED',Thursday:'THU',Friday:'FRI',Saturday:'SAT',Sunday:'SUN'};
             let typeLabel={class:'',duty:'🔔 Duty',break:'☕ Break',lunch:'🍽️ Lunch'};
             let html='<table class="timetable"><thead><tr><th>Time</th>';
             for(let day of customDays){ let cls=day==='Saturday'?'saturday':day==='Sunday'?'sunday':''; html+='<th class="'+cls+'">'+(dayNames[day]||day.substring(0,3))+'</th>'; }
             html+='</tr></thead><tbody>';
-            for(let row=0; row<maxBlocks; row++){
+            for(let slot of timeSlots){
                 html+='<tr>';
-                let rowHeader='';
-                for(let day of customDays){ let blk=daysData[day][row]; if(blk){rowHeader=blk.start+' - '+blk.end;break;} }
-                if(!rowHeader) rowHeader='Slot '+(row+1);
+                let rowHeader=slot.start+' - '+slot.end;
                 html+='<td class="time-cell"><small>'+rowHeader+'</small></td>';
                 for(let day of customDays){
-                    let blk=daysData[day][row];
+                    let blk=(daysData[day]||[]).find(b=>b.start===slot.start&&b.end===slot.end);
                     let cellContent='';
                     if(blk){
                         if(blk.type==='occupied'){
@@ -1046,7 +1052,7 @@
             teacherScheds.forEach(s => { if(dayMap[s.day]) dayMap[s.day].push(s); });
 
             // Build time-based rows for teacher view
-            let daysData = {}, maxBlocks = 0;
+            let daysData = {}, slotMap = new Map();
             for (let day of customDays) {
                 let blocks = [];
                 for (let s of dayMap[day]) {
@@ -1060,8 +1066,16 @@
                     if (lastEnd !== null) { let gap=timeToMinutes(b.start)-timeToMinutes(lastEnd); if(gap>5) final.push({start:lastEnd,end:b.start,type:'gap',gapMinutes:gap}); }
                     final.push(b); lastEnd = b.end;
                 }
-                daysData[day] = final; maxBlocks = Math.max(maxBlocks, final.length);
+                daysData[day] = final;
+                final.forEach(blk => {
+                    let key = blk.start + '|' + blk.end;
+                    if(!slotMap.has(key)) slotMap.set(key, {start:blk.start, end:blk.end});
+                });
             }
+            let timeSlots = [...slotMap.values()].sort((a,b)=>{
+                let d = timeToMinutes(a.start) - timeToMinutes(b.start);
+                return d !== 0 ? d : timeToMinutes(a.end) - timeToMinutes(b.end);
+            });
 
             if (layout === 'horizontal') {
                 // Days across top, time slots as rows
@@ -1072,13 +1086,12 @@
                     tableHTML += '<th class="' + cls + '">' + (dayNames[day]||day) + '</th>';
                 }
                 tableHTML += '</tr></thead><tbody>';
-                for (let row = 0; row < maxBlocks; row++) {
-                    let rowStart = '', rowEnd = '';
-                    for (let day of customDays) { let blk=daysData[day][row]; if(blk&&blk.start){rowStart=blk.start;rowEnd=blk.end;break;} }
+                for (let slot of timeSlots) {
+                    let rowStart=slot.start, rowEnd=slot.end;
                     tableHTML += '<tr>';
                     tableHTML += '<td class="pt-td-time">' + rowStart + (rowEnd ? '<br><small>' + rowEnd + '</small>' : '') + '</td>';
                     for (let day of customDays) {
-                        let blk = daysData[day][row];
+                        let blk = (daysData[day]||[]).find(b => b.start===slot.start && b.end===slot.end);
                         let tdCls = day==='Saturday' ? 'pt-td-sat' : day==='Sunday' ? 'pt-td-sun' : '';
                         tableHTML += '<td class="' + tdCls + '">';
                         if (blk) {
