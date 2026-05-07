@@ -582,6 +582,16 @@
     }
     function getPeriodsForClass(cid){ return (classPeriods[cid] && classPeriods[cid].length) ? classPeriods[cid] : globalPeriods; }
     function getTeacherClassString(tid){ let ts=schedules.filter(s=>s.teacher==tid&&s.type==='class'); return [...new Set(ts.map(s=>getClassName(s.classId)))].join(', '); }
+    
+    function formatTime(t) {
+        if (!t) return '';
+        let [h, m] = t.split(':').map(Number);
+        let ampm = h >= 12 ? 'PM' : 'AM';
+        h = h % 12;
+        h = h ? h : 12; // the hour '0' should be '12'
+        return h + ':' + (m < 10 ? '0' + m : m) + ' ' + ampm;
+    }
+
     function timeToMinutes(t){ if(!t) return 0; let [h,m]=t.split(':').map(Number); return h*60+m; }
     function escapeHtml(str){ return String(str).replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
     function getOrderedTeachers(){ if(teacherOrder.length===teachers.length && teacherOrder.every(id=>teachers.some(t=>t.id===id))) return teacherOrder.map(id=>teachers.find(t=>t.id===id)).filter(t=>t); return [...teachers].sort((a,b)=>a.id-b.id); }
@@ -854,7 +864,7 @@
             html+='</tr></thead><tbody>';
             for(let slot of timeSlots){
                 html+='<tr>';
-                let rowHeader=slot.start+' - '+slot.end;
+                let rowHeader=formatTime(slot.start)+' - '+formatTime(slot.end);
                 html+='<td class="time-cell"><small>'+rowHeader+'</small></td>';
                 for(let day of customDays){
                     let blk=(daysData[day]||[]).find(b=>b.start===slot.start&&b.end===slot.end);
@@ -990,7 +1000,7 @@
         html+='</tr></thead><tbody>';
         for(let slot of timeSlots){
             let key=slot.start+'|'+slot.end;
-            html+='<tr><td class="time-cell"><strong>'+slot.start+'</strong><br><small>→&nbsp;'+slot.end+'</small></td>';
+            html+='<tr><td class="time-cell"><strong>'+formatTime(slot.start)+'</strong><br><small>→&nbsp;'+formatTime(slot.end)+'</small></td>';
             for(let cid of cids){
                 let cellScheds=(cellData[cid+'|'+key])||[];
                 html+='<td>';
@@ -1089,7 +1099,7 @@
                 for (let slot of timeSlots) {
                     let rowStart=slot.start, rowEnd=slot.end;
                     tableHTML += '<tr>';
-                    tableHTML += '<td class="pt-td-time">' + rowStart + (rowEnd ? '<br><small>' + rowEnd + '</small>' : '') + '</td>';
+                    tableHTML += '<td class="pt-td-time">' + formatTime(rowStart) + (rowEnd ? '<br><small>' + formatTime(rowEnd) + '</small>' : '') + '</td>';
                     for (let day of customDays) {
                         let blk = (daysData[day]||[]).find(b => b.start===slot.start && b.end===slot.end);
                         let tdCls = day==='Saturday' ? 'pt-td-sat' : day==='Sunday' ? 'pt-td-sun' : '';
@@ -1134,7 +1144,7 @@
                     if (slot.isGap) {
                         tableHTML += '<th style="background:#e0e0e0;color:#666;font-size:8px;min-width:30px;padding:3px 2px;">⏱<br><small>' + slot.gapMinutes + 'm</small></th>';
                     } else {
-                        tableHTML += '<th class="pt-th-day" style="min-width:52px;">' + slot.start + '<br><small>' + slot.end + '</small></th>';
+                        tableHTML += '<th class="pt-th-day" style="min-width:52px;">' + formatTime(slot.start) + '<br><small>' + formatTime(slot.end) + '</small></th>';
                     }
                 }
                 tableHTML += '</tr></thead><tbody>';
@@ -1188,8 +1198,12 @@
                 tableHTML += '</tr></thead><tbody>';
                 for (let p of periodsToUse) {
                     let isBreak=p.type==='break', isLunch=p.type==='lunch';
+                    // Check if this period has any schedule across all days
+                    let hasSchedule = customDays.some(day => filtered.some(s => s.day === day && s.periodName === p.name));
+                    if (!hasSchedule && !isBreak && !isLunch) continue; // Skip empty class periods, keep break/lunch
+                    
                     let rowCls = isBreak ? 'pt-break-row' : isLunch ? 'pt-lunch-row' : '';
-                    tableHTML += '<tr class="' + rowCls + '"><td class="pt-td-time"><strong>' + escapeHtml(p.name) + '</strong><br><small>' + p.start + '-' + p.end + '</small></td>';
+                    tableHTML += '<tr class="' + rowCls + '"><td class="pt-td-time"><strong>' + escapeHtml(p.name) + '</strong><br><small>' + formatTime(p.start) + '-' + formatTime(p.end) + '</small></td>';
                     for (let day of customDays) {
                         let tdCls = day==='Saturday'?'pt-td-sat':day==='Sunday'?'pt-td-sun':'';
                         let ds = filtered.filter(s=>s.day===day&&s.periodName===p.name);
@@ -1214,9 +1228,14 @@
             } else {
                 // Vertical (Landscape): days as rows, periods as columns
                 tableHTML = '<div class="pt-vertical-scaler" id="pt-vert-scaler"><table class="pt-table" id="pt-vert-table"><thead><tr><th class="pt-th-time">Day</th>';
-                for (let p of periodsToUse) {
+                let activePeriods = periodsToUse.filter(p => {
+                    let isBreak=p.type==='break', isLunch=p.type==='lunch';
+                    if (isBreak || isLunch) return true;
+                    return customDays.some(day => filtered.some(s => s.day === day && s.periodName === p.name));
+                });
+                for (let p of activePeriods) {
                     let pCls = p.type==='break' ? 'pt-th-sat' : p.type==='lunch' ? 'pt-th-sun' : 'pt-th-day';
-                    tableHTML += '<th class="' + pCls + '" style="min-width:50px;">' + escapeHtml(p.name) + '<br><small>' + p.start + '</small></th>';
+                    tableHTML += '<th class="' + pCls + '" style="min-width:50px;">' + escapeHtml(p.name) + '<br><small>' + formatTime(p.start) + '</small></th>';
                 }
                 tableHTML += '</tr></thead><tbody>';
                 for (let day of customDays) {
@@ -1225,7 +1244,7 @@
                                  : day==='Sunday'   ? '<span style="color:#c2185b;">' + day.substring(0,3).toUpperCase() + '</span>'
                                  : day.substring(0,3).toUpperCase();
                     tableHTML += '<tr><td class="pt-td-time" style="background:' + dayBg + ';">' + dayLabel + '</td>';
-                    for (let p of periodsToUse) {
+                    for (let p of activePeriods) {
                         let isBreak = p.type==='break', isLunch = p.type==='lunch';
                         let tdBg = isBreak ? 'background:#fff8e1;' : isLunch ? 'background:#fce4ec;' : '';
                         let tdCls = day==='Saturday' ? 'pt-td-sat' : day==='Sunday' ? 'pt-td-sun' : '';
@@ -1281,7 +1300,7 @@
             tableHTML += '</tr></thead><tbody>';
             for (let slot of timeSlots) {
                 let key = slot.start+'|'+slot.end;
-                tableHTML += '<tr><td class="pt-td-time"><strong>' + slot.start + '</strong><br><small>' + slot.end + '</small></td>';
+                tableHTML += '<tr><td class="pt-td-time"><strong>' + formatTime(slot.start) + '</strong><br><small>' + formatTime(slot.end) + '</small></td>';
                 for (let cid of cids) {
                     let cellScheds = (cellData[cid+'|'+key])||[];
                     tableHTML += '<td>';
