@@ -788,8 +788,8 @@
             if (!classes.some(c => c.id == s.classId))  invalid.push({type:'Class', name:s.classId, idx});
             if (s.subject && !subjects.some(sub => sub.id == s.subject)) invalid.push({type:'Subject', name:s.subject, idx});
             if (!customDays.includes(s.day)) invalid.push({type:'Day', name:s.day, idx});
-            let periods = getPeriodsForClass(s.classId);
-            if (!periods.some(p => p.name === s.periodName)) invalid.push({type:'Period', name:s.periodName, idx});
+            // Use startTime/endTime to validate — do NOT rely on periodName matching
+            if (!s.startTime || !s.endTime) invalid.push({type:'Missing Time', name:(s.periodName||'Unknown'), idx});
         });
         document.getElementById('invalid-data-list').innerHTML = invalid.length
             ? invalid.map(iv => '<div class="item"><div>⚠️ Invalid ' + iv.type + ': ' + iv.name + '</div><button class="delete-btn" onclick="deleteInvalidSchedule(' + iv.idx + ')">Delete</button></div>').join('')
@@ -823,6 +823,29 @@
     function clonePeriods(){ let src = document.getElementById('clone-from-class').value,tgt = document.getElementById('period-class-select').value; if(!src||!tgt){ showToast("Select both source and target class","warning"); return; } classPeriods[tgt] = JSON.parse(JSON.stringify(getPeriodsForClass(parseInt(src)))); saveToLocal(); forceCloudSync(); loadPeriods(); showToast("Cloned"); }
 
     // ======================== TIMETABLE RENDER ========================
+    // Helper: get schedules for a period slot by name OR time overlap
+    function getSchedulesForPeriod(pool, day, p) {
+        let pS = timeToMinutes(p.start), pE = timeToMinutes(p.end);
+        let matched = pool.filter(s => {
+            if (s.day !== day) return false;
+            let sS = timeToMinutes(s.startTime), sE = timeToMinutes(s.endTime);
+            if (isNaN(sS) || isNaN(sE)) {
+                let ps = getPeriodsForClass(s.classId);
+                let pf = ps.find(p2 => p2.name === s.periodName);
+                if (!pf) return false;
+                sS = timeToMinutes(pf.start); sE = timeToMinutes(pf.end);
+            }
+            if (isNaN(sS) || isNaN(sE)) return false;
+            return sS === pS && sE === pE;
+        });
+        // Deduplicate: same time+subject+type+portion => show only first
+        let seen = new Set();
+        return matched.filter(s => {
+            let key = (s.startTime||'')+'|'+(s.endTime||'')+'|'+(s.subject||'')+'|'+(s.type||'')+'|'+(s.portion||'');
+            if (seen.has(key)) return false;
+            seen.add(key); return true;
+        });
+    }
     function renderTimetable(){
         let sid = document.getElementById('view-select').value;
         if(!sid){ document.getElementById('timetable-container').innerHTML='<p>Select an item</p>'; return; }
@@ -896,7 +919,7 @@
         // Class view
         let classId = parseInt(sid);
         let filtered = schedules.filter(s => s.classId === classId);
-        let periodsToUse = getPeriodsForClass(classId);
+        let periodsToUse = getPeriodsForClass(classId).sort((a,b) => timeToMinutes(a.start) - timeToMinutes(b.start));
         let dayNames={Monday:'MON',Tuesday:'TUE',Wednesday:'WED',Thursday:'THU',Friday:'FRI',Saturday:'SAT',Sunday:'SUN'};
         let typeLabel={class:'',duty:'🔔 Duty',break:'☕ Break',lunch:'🍽️ Lunch'};
         let html='<table class="timetable"><thead><tr><th>Period</th>';
@@ -907,7 +930,28 @@
             html+='<tr class="'+(isBreak?'break-row':isLunch?'lunch-row':'')+'"><td class="time-cell"><strong>'+p.name+'</strong><br><small>'+p.start+'-'+p.end+'</small></td>';
             for(let day of customDays){
                 let isSat=day==='Saturday',isSun=day==='Sunday';
-                let ds=filtered.filter(s=>s.day===day&&s.periodName===p.name);
+                // Match by startTime/endTime overlap only (no periodName matching)
+                // Class view: exact time match only (start တူ + end တူ)
+                let pStartMin=timeToMinutes(p.start),pEndMin=timeToMinutes(p.end);
+                let dsAll=filtered.filter(s=>{
+                    if(s.day!==day) return false;
+                    let sS=timeToMinutes(s.startTime),sE=timeToMinutes(s.endTime);
+                    if(isNaN(sS)||isNaN(sE)){
+                        let ps=getPeriodsForClass(s.classId);
+                        let pf=ps.find(p2=>p2.name===s.periodName);
+                        if(!pf) return false;
+                        sS=timeToMinutes(pf.start); sE=timeToMinutes(pf.end);
+                    }
+                    if(isNaN(sS)||isNaN(sE)) return false;
+                    return sS===pStartMin && sE===pEndMin;
+                });
+                // Deduplicate: same subject+type+portion → show only first (multi-teacher same slot)
+                let seenSlotKey=new Set();
+                let ds=dsAll.filter(s=>{
+                    let key=(s.subject||'')+'|'+(s.type||'')+'|'+(s.portion||'');
+                    if(seenSlotKey.has(key)) return false;
+                    seenSlotKey.add(key); return true;
+                });
                 html+='<td style="'+(isSat?'background:#fff3e0':isSun?'background:#fce4ec':'')+'">';
                 for(let s of ds){
                     let cardCls='schedule-card'; if(s.type==='break') cardCls+=' break'; else if(s.type==='lunch') cardCls+=' lunch'; else if(s.type==='duty') cardCls+=' duty';
@@ -1186,11 +1230,11 @@
         } else if (currentView === 'class' && sid) {
             let classId = parseInt(sid);
             let filtered = schedules.filter(s => s.classId === classId);
-            let periodsToUse = getPeriodsForClass(classId);
+            let periodsToUse = getPeriodsForClass(classId).sort((a,b) => timeToMinutes(a.start) - timeToMinutes(b.start));
 
             if (layout === 'horizontal') {
                 // Periods as rows, days as columns
-                tableHTML = '<table class="pt-table" style="width:100%"><thead><tr><th class="pt-th-time">Period</th>';
+                tableHTML = '<table class="pt-table" style="width:100%"><thead><tr><th class="pt-th-time">Time</th>';
                 for (let day of customDays) {
                     let cls = day==='Saturday'?'pt-th-sat':day==='Sunday'?'pt-th-sun':'pt-th-day';
                     tableHTML += '<th class="' + cls + '">' + (dayNames[day]||day) + '</th>';
@@ -1199,14 +1243,14 @@
                 for (let p of periodsToUse) {
                     let isBreak=p.type==='break', isLunch=p.type==='lunch';
                     // Check if this period has any schedule across all days
-                    let hasSchedule = customDays.some(day => filtered.some(s => s.day === day && s.periodName === p.name));
+                    let hasSchedule = customDays.some(day => getSchedulesForPeriod(filtered, day, p).length > 0);
                     if (!hasSchedule && !isBreak && !isLunch) continue; // Skip empty class periods, keep break/lunch
                     
                     let rowCls = isBreak ? 'pt-break-row' : isLunch ? 'pt-lunch-row' : '';
-                    tableHTML += '<tr class="' + rowCls + '"><td class="pt-td-time"><strong>' + escapeHtml(p.name) + '</strong><br><small>' + formatTime(p.start) + '-' + formatTime(p.end) + '</small></td>';
+                    tableHTML += '<tr class="' + rowCls + '"><td class="pt-td-time"><strong>' + formatTime(p.start) + '</strong><br><small>' + formatTime(p.end) + '</small></td>';
                     for (let day of customDays) {
                         let tdCls = day==='Saturday'?'pt-td-sat':day==='Sunday'?'pt-td-sun':'';
-                        let ds = filtered.filter(s=>s.day===day&&s.periodName===p.name);
+                        let ds = getSchedulesForPeriod(filtered, day, p);
                         tableHTML += '<td class="' + tdCls + '">';
                         for (let s of ds) {
                             let cardCls = 'pt-card ' + (s.type==='break'?'pt-break':s.type==='lunch'?'pt-lunch':s.type==='duty'?'pt-duty':'');
@@ -1231,11 +1275,11 @@
                 let activePeriods = periodsToUse.filter(p => {
                     let isBreak=p.type==='break', isLunch=p.type==='lunch';
                     if (isBreak || isLunch) return true;
-                    return customDays.some(day => filtered.some(s => s.day === day && s.periodName === p.name));
+                    return customDays.some(day => getSchedulesForPeriod(filtered, day, p).length > 0);
                 });
                 for (let p of activePeriods) {
                     let pCls = p.type==='break' ? 'pt-th-sat' : p.type==='lunch' ? 'pt-th-sun' : 'pt-th-day';
-                    tableHTML += '<th class="' + pCls + '" style="min-width:50px;">' + escapeHtml(p.name) + '<br><small>' + formatTime(p.start) + '</small></th>';
+                    tableHTML += '<th class="' + pCls + '" style="min-width:50px;">' + formatTime(p.start) + '<br><small>' + formatTime(p.end) + '</small></th>';
                 }
                 tableHTML += '</tr></thead><tbody>';
                 for (let day of customDays) {
@@ -1248,7 +1292,7 @@
                         let isBreak = p.type==='break', isLunch = p.type==='lunch';
                         let tdBg = isBreak ? 'background:#fff8e1;' : isLunch ? 'background:#fce4ec;' : '';
                         let tdCls = day==='Saturday' ? 'pt-td-sat' : day==='Sunday' ? 'pt-td-sun' : '';
-                        let ds = filtered.filter(s => s.day===day && s.periodName===p.name);
+                        let ds = getSchedulesForPeriod(filtered, day, p);
                         tableHTML += '<td class="' + tdCls + '" style="' + (tdCls ? '' : tdBg) + '">';
                         if (ds.length === 0 && (isBreak || isLunch)) {
                             // Show break/lunch label even if no schedule entry
@@ -1463,19 +1507,25 @@
     function checkConflicts(teacherId, day, start, end, ignoreIdx = -1) {
         let conflicts = [];
         let newStart = timeToMinutes(start);
-        let newEnd = timeToMinutes(end);
-        
+        let newEnd   = timeToMinutes(end);
+        if (isNaN(newStart) || isNaN(newEnd)) return conflicts;
+
         schedules.forEach((s, idx) => {
             if (idx === ignoreIdx) return;
-            if (s.teacher === teacherId && s.day === day) {
-                let sStart = timeToMinutes(s.startTime);
-                let sEnd = timeToMinutes(s.endTime);
-                
-                // Overlap logic: (StartA < EndB) and (EndA > StartB)
-                if (newStart < sEnd && newEnd > sStart) {
-                    conflicts.push(s);
-                }
+            if (s.teacher !== teacherId || s.day !== day) return;
+
+            let sStart = timeToMinutes(s.startTime);
+            let sEnd   = timeToMinutes(s.endTime);
+            if (isNaN(sStart) || isNaN(sEnd)) {
+                // Fallback: resolve times via the schedule's own class periods
+                let ps = getPeriodsForClass(s.classId);
+                let pf = ps.find(p => p.name === s.periodName);
+                if (pf) { sStart = timeToMinutes(pf.start); sEnd = timeToMinutes(pf.end); }
             }
+            if (isNaN(sStart) || isNaN(sEnd)) return;
+
+            // Overlap: (StartA < EndB) && (EndA > StartB)
+            if (newStart < sEnd && newEnd > sStart) conflicts.push(s);
         });
         return conflicts;
     }
@@ -1485,14 +1535,25 @@
         if(!subjectId){ showToast("Select subject","error"); return; }
         let teacherId=document.getElementById('modal-teacher').value;
         if(!teacherId){ showToast("Select teacher","error"); return; }
-        
-        let periods=getPeriodsForClass(modalContext.classId),period=periods.find(p=>p.name===modalContext.periodName);
-        if(!period){ showToast("Period not found","error"); return; }
-        
+
         let editIdx=parseInt(document.getElementById('modal-edit-index').value);
-        
-        // Conflict Check
-        let conflicts = checkConflicts(parseInt(teacherId), modalContext.day, period.start, period.end, editIdx);
+
+        // Resolve start/end time: prefer period name lookup; fall back to existing schedule times
+        let periodStart, periodEnd;
+        let allPeriods = getPeriodsForClass(modalContext.classId);
+        let matchedPeriod = allPeriods.find(p => p.name === modalContext.periodName);
+        if (matchedPeriod) {
+            periodStart = matchedPeriod.start;
+            periodEnd   = matchedPeriod.end;
+        } else if (editIdx >= 0 && editIdx < schedules.length) {
+            // Editing a duty/external schedule whose periodName doesn't match any class period
+            periodStart = schedules[editIdx].startTime;
+            periodEnd   = schedules[editIdx].endTime;
+        }
+        if (!periodStart || !periodEnd) { showToast("Period time not found","error"); return; }
+
+        // Conflict Check using resolved times
+        let conflicts = checkConflicts(parseInt(teacherId), modalContext.day, periodStart, periodEnd, editIdx);
         if (conflicts.length > 0) {
             let msg = "⚠️ Conflict Detected!\nTeacher is already scheduled for:\n" + 
                       conflicts.map(c => "- " + getClassName(c.classId) + " (" + c.startTime + "-" + c.endTime + ")").join("\n") + 
@@ -1508,14 +1569,20 @@
         let type=document.getElementById('modal-type').value;
         
         if(editIdx>=0&&editIdx<schedules.length){
-            schedules[editIdx]={...schedules[editIdx],teacher:parseInt(teacherId),subject:parseInt(subjectId),portion,type,startTime:period.start,endTime:period.end};
+            schedules[editIdx]={...schedules[editIdx],teacher:parseInt(teacherId),subject:parseInt(subjectId),portion,type,startTime:periodStart,endTime:periodEnd};
             showToast("Updated");
         } else {
-            if(schedules.find(s=>s.classId==modalContext.classId&&s.day===modalContext.day&&s.periodName===modalContext.periodName)){
+            let _nS=timeToMinutes(periodStart),_nE=timeToMinutes(periodEnd);
+            if(schedules.find(s=>{
+                if(s.classId!=modalContext.classId||s.day!==modalContext.day) return false;
+                let _sS=timeToMinutes(s.startTime),_sE=timeToMinutes(s.endTime);
+                if(isNaN(_sS)||isNaN(_sE)){let _ps=getPeriodsForClass(s.classId),_pf=_ps.find(p=>p.name===s.periodName);if(!_pf)return false;_sS=timeToMinutes(_pf.start);_sE=timeToMinutes(_pf.end);}
+                return !isNaN(_sS)&&!isNaN(_sE)&&_nS===_sS&&_nE===_sE;
+            })){
                 showToast("❌ Slot already has a schedule!","error");
                 return;
             }
-            schedules.push({teacher:parseInt(teacherId),classId:modalContext.classId,subject:parseInt(subjectId),portion,day:modalContext.day,periodName:modalContext.periodName,startTime:period.start,endTime:period.end,type});
+            schedules.push({teacher:parseInt(teacherId),classId:modalContext.classId,subject:parseInt(subjectId),portion,day:modalContext.day,periodName:modalContext.periodName,startTime:periodStart,endTime:periodEnd,type});
             showToast("Added");
         }
         saveToLocal(); forceCloudSync(); updateAll(); closeModal();
