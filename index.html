@@ -126,6 +126,18 @@
         .class-teacher-header strong { font-size: 13px; color: #333; }
         .class-count-badge { background: #667eea22; color: #4a35b0; font-size: 11px; padding: 2px 10px; border-radius: 10px; font-weight: 600; }
 
+        /* ── SSTT v1.3 ── */
+        .conflict-panel { display:none; background:#fff3e0; border:2px solid #ff9800; border-radius:10px; padding:10px 12px; margin:10px 15px 0; font-size:12px; }
+        .conflict-panel button { margin:4px 4px 0 0; }
+        .editor-banner { display:none; background:#e3f2fd; border:2px solid #667eea; border-radius:10px; padding:10px 12px; margin:10px 15px 0; font-size:12px; }
+        .first-run-guide { background:#f0f4ff; border:1px solid #d0d8f0; border-radius:10px; padding:14px; }
+        .first-run-guide ol { margin:8px 0 8px 20px; font-size:13px; line-height:1.9; }
+        .first-run-guide button { margin:2px 4px 2px 0; }
+        .skipped-note { background:#fff8e1; border:1px solid #ffe082; border-radius:6px; padding:6px 10px; margin-top:8px; font-size:11px; color:#7a5c00; }
+        .period-status { font-size:12px; background:#f0f4ff; border-radius:8px; padding:8px 10px; margin-bottom:8px; }
+        .sync-btn-desc { font-size:11px; color:#666; margin:2px 0 0 2px; }
+        .period-lesson-count { font-size:11px; color:#666; white-space:nowrap; }
+
         /* ==========================================
            PRINT PREVIEW OVERLAY (screen only)
         ========================================== */
@@ -275,25 +287,42 @@
             .period-row .time-input { width: 100%; }
             #print-preview-box { width: 95vw; padding: 6mm; }
         }
+        @media (max-width: 600px) {
+            .tab { min-height: 44px; padding: 10px 12px; font-size: 12px; }
+            button { min-height: 44px; padding: 10px 14px; }
+            .btn-sm { min-height: 44px; padding: 8px 12px; font-size: 12px; }
+            input, select, textarea { min-height: 44px; }
+            .timetable td { min-height: 44px; }
+            .timetable th { min-height: 44px; }
+            .add-btn { width: 44px; height: 44px; line-height: 42px; font-size: 22px; }
+            .schedule-card { min-height: 44px; padding: 8px; }
+            .modal-content { width: calc(100% - 16px); max-width: 100%; box-sizing: border-box; }
+            #print-preview-overlay { padding: 8px; box-sizing: border-box; }
+            #print-preview-box { max-width: 100%; width: 100% !important; min-height: auto; box-sizing: border-box; padding: 4mm; }
+            #print-preview-actions { position: static; transform: none; justify-content: center; margin-bottom: 8px; }
+            .floating-save { min-height: 44px; }
+        }
     </style>
 </head>
 <body>
 <div class="container">
     <div class="header">
-        <h1>📅 SSMT Timetable <span class="version-badge" id="app-version-badge">v1.2</span></h1>
+        <h1>📅 SSMT Timetable <span class="version-badge" id="app-version-badge">v1.3</span></h1>
         <div style="text-align: right;">
             <div id="sync-status" class="sync-status">🔄 Connecting...</div>
             <div id="last-sync-info" class="last-sync"></div>
         </div>
     </div>
+    <div id="conflict-panel" class="conflict-panel">⚠️ <strong>Cloud changed elsewhere / အခြားနေရာက ပြောင်းထားသည်</strong><br>Your edits are not uploaded yet. Choose what to do:<br><button onclick="exportConflictCopy()" class="btn-success">📤 Export my copy</button><button onclick="loadCloudFromConflict()" class="btn-warning">📥 Load cloud</button><button onclick="dismissConflict()">✏️ Keep editing</button></div>
+    <div id="editor-name-banner" class="editor-banner">👋 <strong>Your name / သင့်အမည်</strong> — shown in Data versions so others know who edited.<br><input type="text" id="editor-name-banner-input" placeholder="Your name" style="max-width:220px;margin-top:6px;"><button onclick="saveEditorName()" class="btn-sm" style="margin-left:6px;">Save</button></div>
     <div class="tabs">
-        <button class="tab active" onclick="switchTab('dashboard', event)">📊 Dashboard</button>
-        <button class="tab" onclick="switchTab('timetable', event)">🗓️ Timetable</button>
-        <button class="tab" onclick="switchTab('teachers', event)">👨‍🏫 Teachers</button>
-        <button class="tab" onclick="switchTab('classes', event)">🏫 Classes</button>
-        <button class="tab" onclick="switchTab('subjects', event)">📚 Subjects</button>
-        <button class="tab" onclick="switchTab('periods', event)">⏰ Class Periods</button>
-        <button class="tab" onclick="switchTab('settings', event)">⚙️ Settings</button>
+        <button class="tab active" onclick="switchTab('dashboard', event)">📊 ဒက်ရှ်ဘုတ် Dashboard</button>
+        <button class="tab" onclick="switchTab('timetable', event)">🗓️ အချိန်ဇယား Timetable</button>
+        <button class="tab" onclick="switchTab('teachers', event)">👨‍🏫 ဆရာ Teachers</button>
+        <button class="tab" onclick="switchTab('classes', event)">🏫 အတန်း Classes</button>
+        <button class="tab" onclick="switchTab('subjects', event)">📚 ဘာသာ Subjects</button>
+        <button class="tab" onclick="switchTab('periods', event)">⏰ အချိန် Periods</button>
+        <button class="tab" onclick="switchTab('settings', event)">⚙️ ဆက်တင် Settings</button>
     </div>
     <div class="content">
         <!-- Dashboard -->
@@ -353,10 +382,10 @@
                 </div>
                 <div id="teacher-class-info" class="teacher-class-info"></div>
                 <div class="print-options">
-                    <button onclick="openPrintPreview('horizontal',false)" class="btn-sm">🖨️ Print (Horizontal)</button>
-                    <button onclick="openPrintPreview('vertical',false)" class="btn-sm">🖨️ Print (Vertical)</button>
-                    <button id="printNoTeacherBtn" onclick="openPrintPreview('horizontal',true)" style="display:none;" class="btn-sm">Print (No Teacher)</button>
-                    <button id="printNoTeacherVertBtn" onclick="openPrintPreview('vertical',true)" style="display:none;" class="btn-sm">Print (No Teacher Vert)</button>
+                    <button onclick="openPrintPreview('horizontal',false)" class="btn-sm">🖨️ ပရင့် Print (Horizontal)</button>
+                    <button onclick="openPrintPreview('vertical',false)" class="btn-sm">🖨️ ပရင့် Print (Vertical)</button>
+                    <button id="printNoTeacherBtn" onclick="openPrintPreview('horizontal',true)" style="display:none;" class="btn-sm">ပရင့် Print (No Teacher)</button>
+                    <button id="printNoTeacherVertBtn" onclick="openPrintPreview('vertical',true)" style="display:none;" class="btn-sm">ပရင့် Print (No Teacher Vert)</button>
                 </div>
                 <div class="timetable-wrapper" id="timetable-container"></div>
                 <div id="timetable-footer-container"></div>
@@ -388,7 +417,7 @@
                     </div>
                     <button onclick="addAvailableTimeMulti()">Add to Selected Days</button>
                 </div>
-                <button onclick="saveTeacher()">💾 Save Teacher</button>
+                <button onclick="saveTeacher()">💾 သိမ်းမည် Save Teacher</button>
                 <button onclick="clearTeacherForm()" class="btn-warning">Clear</button>
             </div>
             <div class="card"><h3>👨‍🏫 Teachers List (Drag ☰ to reorder)</h3><div id="teachers-list" class="item-list"></div></div>
@@ -423,23 +452,26 @@
         <!-- Class Periods -->
         <div id="periods-content" class="tab-content">
             <div class="card">
-                <h3>⏰ Class‑Specific Periods (Use 24h format)</h3>
+                <h3>⏰ Class‑Specific Periods အတန်းအလိုက် အချိန်များ (Use 24h format)</h3>
                 <div class="grid-2">
                     <select id="period-class-select" onchange="loadPeriods()"></select>
                     <select id="clone-from-class"></select>
                 </div>
                 <button onclick="clonePeriods()" class="btn-sm">📋 Clone Periods from selected</button>
+                <div id="period-class-status" class="period-status"></div>
                 <div id="periods-list" style="margin-top: 12px;"></div>
+                <div id="period-delete-info" style="font-size:11px;color:#666;margin-top:6px;"></div>
                 <button onclick="addPeriodRow()" class="btn-success">➕ Add Period</button>
-                <button onclick="savePeriods()" class="btn-success" style="margin-left:8px;">💾 Save Periods</button>
+                <button onclick="savePeriods()" class="btn-success" style="margin-left:8px;">💾 သိမ်းမည် Save Periods</button> <span id="period-dirty-indicator" style="font-size:12px;color:#e65100;font-weight:bold;"></span>
                 <p style="font-size:11px; margin-top:8px;">Note: Click Save after editing any period.</p>
             </div>
         </div>
         <!-- Settings -->
         <div id="settings-content" class="tab-content">
             <div class="card">
-                <h3>🌍 Global Periods (fallback)</h3>
+                <h3>🌍 Global Periods ယေဘုယျ အချိန်များ (fallback)</h3>
                 <div id="global-periods-list"></div>
+                <div id="global-usage-line" style="font-size:11px;color:#555;margin:4px 0 8px;"></div>
                 <div class="grid-3">
                     <input id="global-period-name" placeholder="Name">
                     <input type="time" id="global-period-start" value="08:00">
@@ -462,24 +494,31 @@
                 <div id="holidays-list"></div>
             </div>
             <div class="card">
-                <h3>📥 Data Management</h3>
+                <h3>📥 Data Management ဒေတာ စီမံခန့်ခွဲမှု</h3>
                 <button onclick="exportData()">Export</button>
                 <button onclick="importData()">Import</button>
                 <input type="file" id="import-file" style="display:none;">
-                <button onclick="forceCloudSyncNow()" class="btn-success">☁️ Sync to Cloud</button>
-                <button onclick="loadFromCloudManual(true)" class="btn-warning">📥 Load from Cloud (Overwrite)</button>
-                <button onclick="manualRetrySync()" class="btn-warning">🔄 Check &amp; Sync</button>
+                <div style="margin-top:8px;"><button onclick="forceCloudSyncNow()" class="btn-success">☁️ Upload my changes</button><div class="sync-btn-desc">Sends your edits to the cloud</div></div>
+                <div style="margin-top:8px;"><button onclick="manualRetrySync()" class="btn-warning">🔄 Check for newer cloud data</button><div class="sync-btn-desc">Loads newer data from the cloud</div></div>
+                <div style="margin-top:8px;"><button onclick="loadFromCloudManual(true)" class="btn-danger">📥 Replace my data with cloud data</button><div class="sync-btn-desc" style="color:#c62828;">⚠️ Deletes your local edits</div></div>
                 <div id="cloud-diag" style="font-size:11px;color:#555;margin-top:6px;">Cloud: not checked yet.</div>
             </div>
             <div class="card">
+                <h3>📜 Data versions ဒေတာ ဗားရှင်းများ</h3>
+                <div class="form-group"><label>Editor name / တည်းဖြတ်သူ အမည်</label><input type="text" id="editor-name-input" placeholder="Your name"><button onclick="saveEditorNameFromSettings()" class="btn-sm" style="margin-top:4px;">Save name</button></div>
+                <div id="history-list">History not loaded yet.</div>
+                <button onclick="loadHistoryList()" class="btn-sm" style="margin-top:6px;">🔄 Refresh history</button>
+            </div>
+            <div class="card">
                 <h3>📜 Version History</h3>
+                <div><strong>v1.3</strong> (2026-11-06) — Data versions with restore: every cloud upload now saves a version you can restore from Settings. If the cloud changed elsewhere, the app now offers Export my copy, Load cloud, or Keep editing. Periods are clearer: each class shows whether it uses Global periods or its own list, Global edits show how many classes and lessons they affect, periods can be skipped without deleting lessons, and deleting a period shows its lesson count first. The lesson window shows the day, period and class. A teacher with no lessons gets an Add first lesson button, empty timetable cells open the add window, and a first-run guide shows the setup steps. Tabs and main buttons are now Burmese + English, sync buttons say what they do, and phone tap targets are bigger. Print stays landscape A4.</div>
                 <div><strong>v1.2</strong> (2026-11-06) — Data recovery: older cloud data now loads on a new device, an empty app can no longer overwrite your saved data, and Settings shows what the cloud holds.</div>
                 <div><strong>v1.0</strong> (2026-11-06) — Sync safety: realtime cloud updates, no silent overwrite, honest upload status. Safe import with backup and validation. Confirmations on destructive actions. Delete/rename cascades for classes, subjects and periods. Compressed logo. Pinned SortableJS with a safe fallback. Period and duplicate-name validation. Unique schedule IDs. Overlapping lessons shown. Print fixes: landscape kept until printing finishes, no blank print, custom vertical print. Holidays shown on Dashboard and print.</div>
             </div>
         </div>
     </div>
 </div>
-<button class="floating-save" onclick="globalSave()">💾 Save All</button>
+<button class="floating-save" onclick="globalSave()">💾 အားလုံး သိမ်းမည် Save All</button>
 
 <!-- Print Preview Overlay -->
 <div id="print-preview-overlay">
@@ -505,7 +544,7 @@
         <input type="hidden" id="modal-edit-index" value="-1">
         <input type="hidden" id="modal-edit-id" value="">
         <div style="display:flex; gap:8px; margin-top:10px;">
-            <button onclick="saveSchedule()" class="btn-success">Save</button>
+            <button onclick="saveSchedule()" class="btn-success">💾 သိမ်းမည် Save</button>
             <button onclick="closeModal()">Cancel</button>
             <button id="modal-delete-btn" onclick="deleteCurrentSchedule()" class="btn-danger" style="display:none;">Delete</button>
         </div>
@@ -542,8 +581,8 @@
     let currentUser = null;
     let schoolInfo = { name:"Shining Stars - Ma Thwe Private High School", year:"2026-2027", phone:"09-123456789", logo:null };
     let lastCloudSyncTime = null;
-    // SSTT v1.2 — app version marker. The fix script guard checks for 'SSTT v1.2'.
-    const APP_VERSION = '1.2';
+    // SSTT v1.3 — app version marker. The fix script guard checks for 'SSTT v1.3'.
+    const APP_VERSION = '1.3';
     // Sync revision (M1/M6): a monotonic counter stored in the cloud doc. It is the
     // ONLY thing used to decide which copy is newer — server timestamps and client
     // clocks are never compared, because device clocks can be wrong (clock skew).
@@ -566,6 +605,35 @@
     function shouldLoadCloud(d){ if(!d||typeof d!=='object') return false; if(isLocalEmpty()&&cloudHasData(d)) return true; return cloudRevOf(d)>_lastSeenCloudRev; }
     function cloudCountsText(d){ let n=function(k){ return Array.isArray(d&&d[k])?d[k].length:0; }; return n('teachers')+' teachers, '+n('classes')+' classes, '+n('subjects')+' subjects, '+n('schedules')+' lessons'; }
     function updateCloudDiag(d){ let el=document.getElementById('cloud-diag'); if(!el) return; if(!d||typeof d!=='object'){ el.textContent='Cloud: no data found.'; return; } let rev=cloudRevOf(d); el.textContent='Cloud: '+cloudCountsText(d)+' (rev '+(rev<0?'none — older data':rev)+')'; }
+    // SSTT v1.3 — editor name (local label only, NOT auth), snapshots, conflict
+    // panel, period helpers, modal title. No login, no roles. Snapshots live
+    // at school/history/versions/{rev} (new docs, never fields in school/shared).
+    // Global + class periods stay separate: skipped is an optional flag on a period object.
+    let _conflictPending = false;
+    let _periodDirty = false;
+    function getEditorName(){ try{ return localStorage.getItem('editorName')||''; }catch(e){ return ''; } }
+    function saveEditorNameValue(name){ name=(name||'').trim(); if(!name){ showToast('Enter your name','error'); return false; } try{ localStorage.setItem('editorName', name); }catch(e){} let b=document.getElementById('editor-name-banner'); if(b) b.style.display='none'; let inp=document.getElementById('editor-name-input'); if(inp) inp.value=name; showToast('Editor name saved'); return true; }
+    function saveEditorName(){ let i=document.getElementById('editor-name-banner-input'); saveEditorNameValue(i?i.value:''); }
+    function saveEditorNameFromSettings(){ let i=document.getElementById('editor-name-input'); saveEditorNameValue(i?i.value:''); }
+    function maybeAskEditorName(){ if(getEditorName()) return; let b=document.getElementById('editor-name-banner'); if(b) b.style.display='block'; }
+    function snapshotData(rev){ return {teachers:JSON.parse(JSON.stringify(teachers)),classes:JSON.parse(JSON.stringify(classes)),subjects:JSON.parse(JSON.stringify(subjects)),schedules:JSON.parse(JSON.stringify(schedules)),holidays:JSON.parse(JSON.stringify(holidays)),classPeriods:JSON.parse(JSON.stringify(classPeriods)),customDays:customDays.slice(),schoolInfo:JSON.parse(JSON.stringify(schoolInfo)),globalPeriods:JSON.parse(JSON.stringify(globalPeriods)),teacherOrder:teacherOrder.slice(),rev:rev,editor:getEditorName()||'Unknown',counts:cloudCountsText({teachers:teachers,classes:classes,subjects:subjects,schedules:schedules})}; }
+    function historyCollection(){ if(!db) return null; try{ return db.collection('school').doc('history').collection('versions'); }catch(e){ return null; } }
+    async function saveSnapshot(rev, dataObj){ let col=historyCollection(); if(!col) return false; let snap=dataObj||snapshotData(rev); try{ let toWrite=Object.assign({}, snap); try{ toWrite.updated=firebase.firestore.FieldValue.serverTimestamp(); }catch(e){ toWrite.updated=Date.now(); } await col.doc(String(rev)).set(toWrite); }catch(e){ console.warn('Snapshot save failed:', e.message); return false; } try{ let qs=await col.orderBy('rev','desc').get(); let docs=qs.docs||[]; for(let i=10;i<docs.length;i++){ try{ await docs[i].ref.delete(); }catch(e){} } }catch(e){} return true; }
+    async function loadHistoryList(){ let el=document.getElementById('history-list'); if(!el) return; let col=historyCollection(); if(!col){ el.innerHTML='History unavailable — connect to the cloud first.'; return; } try{ let qs=await col.orderBy('rev','desc').get(); let docs=qs.docs||[]; if(!docs.length){ el.innerHTML='No saved versions yet.'; return; } el.innerHTML=docs.map(function(doc){ let d=doc.data()||{}; let t=''; let u=d.updated; try{ if(u&&typeof u.toDate==='function') t=new Date(u.toDate()).toLocaleString(); else if(typeof u==='number') t=new Date(u).toLocaleString(); else if(u) t=String(u); }catch(e){} let rev=(typeof d.rev==='number')?d.rev:doc.id; return '<div class="item"><div><strong>rev '+rev+'</strong>'+(t?' • '+escapeHtml(t):'')+'<br><small>'+escapeHtml(d.editor||'Unknown')+' • '+escapeHtml(d.counts||cloudCountsText(d))+'</small></div><button class="btn-sm" onclick="restoreSnapshot('+rev+')">Restore</button></div>'; }).join(''); }catch(e){ el.innerHTML='History unavailable.'; } }
+    async function restoreSnapshot(rev){ let col=historyCollection(); if(!col){ showToast('History unavailable','error'); return; } if(!confirm('Restore version rev '+rev+'? Your current data will be backed up first as a new version.')) return; let backupRev=_lastSeenCloudRev+1; await saveSnapshot(backupRev); try{ let doc=await col.doc(String(rev)).get(); if(!doc.exists){ showToast('That version was not found','error'); return; } let d=doc.data(); applyCloudData(d); _lastSeenCloudRev=backupRev; _localDirty=true; saveToLocal(); updateAll(); loadHistoryList(); showToast('Restored version rev '+rev+' — backup saved as rev '+backupRev); forceCloudSync(); }catch(e){ showToast('Restore failed: '+e.message,'error'); } }
+    function showConflictPanel(){ _conflictPending=true; let p=document.getElementById('conflict-panel'); if(p) p.style.display='block'; updateSyncStatusDisplay('⚠️ Cloud changed elsewhere — choose what to do','offline',lastCloudSyncTime); }
+    function hideConflictPanel(){ let p=document.getElementById('conflict-panel'); if(p) p.style.display='none'; }
+    function exportConflictCopy(){ exportData(); showToast('Your copy was exported — now choose Load cloud or Keep editing','warning'); }
+    function loadCloudFromConflict(){ _conflictPending=false; hideConflictPanel(); loadFromCloudManual(true); }
+    function dismissConflict(){ _conflictPending=false; hideConflictPanel(); }
+    function globalUsageCounts(){ let using=classes.filter(c=>!(classPeriods[c.id]&&classPeriods[c.id].length)); let ids=new Set(using.map(c=>c.id)); let lessons=schedules.filter(s=>ids.has(s.classId)).length; return {classes:using.length, lessons:lessons}; }
+    function isPeriodSkipped(p){ return !!(p&&p.skipped); }
+    function countLessonsForPeriod(cid, name){ return schedules.filter(s=>s.classId==cid&&s.periodName===name).length; }
+    function markPeriodsDirty(){ _periodDirty=true; let el=document.getElementById('period-dirty-indicator'); if(el) el.textContent='● Unsaved changes'; }
+    function clearPeriodsDirty(){ _periodDirty=false; let el=document.getElementById('period-dirty-indicator'); if(el) el.textContent=''; }
+    function setPeriodSkipped(idx, checked){ let cid=document.getElementById('period-class-select').value; if(!cid) return; if(!classPeriods[cid]) classPeriods[cid]=JSON.parse(JSON.stringify(getPeriodsForClass(parseInt(cid)))); if(classPeriods[cid][idx]){ if(checked) classPeriods[cid][idx].skipped=true; else delete classPeriods[cid][idx].skipped; } markPeriodsDirty(); }
+    function setModalTitle(prefix){ let c=modalContext||{}; let parts=[]; if(c.day) parts.push(c.day); let _per=''; if(c.periodName) _per=c.periodName; else if(c.periodStart&&c.periodEnd) _per=c.periodStart+'-'+c.periodEnd; if(_per) parts.push(_per); if(c.classId) parts.push(getClassName(c.classId)); else parts.push('Class: choose'); let t=document.getElementById('modal-title'); if(t) t.textContent=prefix+(parts.length?(' — '+parts.join(' • ')):''); }
+    function openAddFirstLessonForTeacher(tid){ let p=globalPeriods[0]; _openFreeModal(customDays[0]||'Monday', p?p.start:'08:00', p?p.end:'08:45', null, tid); if(p) modalContext.periodName=p.name; setModalTitle('➕ Add Schedule အချိန်ဇယား ထည့်မည်'); updateModalTeachersBySubject(); }
 
     // ======================== HELPERS ========================
     function showToast(msg, type='success'){ let t=document.createElement('div'); t.className='toast '+(type==='error'?'error':type==='warning'?'warning':''); t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),2000); }
@@ -640,11 +708,11 @@
     let _syncLocked = false;
     let _syncTimer  = null;
     function scheduleCloudSync(){ clearTimeout(_syncTimer); _syncTimer = setTimeout(()=>{ _doCloudSync(); }, 400); }
-    async function _doCloudSync(){ if(_syncLocked){ scheduleCloudSync(); return false; } if(!currentUser||!navigator.onLine) return false; if(!db){ console.warn('Firestore not ready'); return false; } _syncLocked = true; updateSyncStatusDisplay('☁️ Uploading...','syncing',lastCloudSyncTime); let prevRev=_lastSeenCloudRev; try{ let doc=null; try{ doc=await db.collection('school').doc('shared').get(); }catch(e){ doc=null; } let cloudRev=(doc&&doc.exists)?cloudRevOf(doc.data()):-1; let cloudHas=(doc&&doc.exists)?cloudHasData(doc.data()):false; if(isLocalEmpty()&&cloudHas){ updateSyncStatusDisplay('⚠️ Cloud has data — load it first','offline',lastCloudSyncTime); showToast("Cloud has data — load it first, upload blocked to protect your data","warning"); return false; } if(cloudRev>_lastSeenCloudRev&&_localDirty){ updateSyncStatusDisplay('⚠️ Cloud changed elsewhere','offline',lastCloudSyncTime); showToast("Cloud changed on another device — use Check & Sync first, upload blocked","warning"); return false; } let newRev=Math.max(cloudRev,_lastSeenCloudRev,0)+1; _lastSeenCloudRev=newRev; await db.collection('school').doc('shared').set({teachers,classes,subjects,schedules,holidays,classPeriods,customDays,schoolInfo,globalPeriods,teacherOrder,rev:newRev,updated: firebase.firestore.FieldValue.serverTimestamp()}); lastCloudSyncTime=Date.now(); _applyingRemote=true; try{ saveToLocal(); }finally{ _applyingRemote=false; } _localDirty=false; updateSyncStatusDisplay('☁️ Synced','online',lastCloudSyncTime); return true; } catch(e){ _lastSeenCloudRev=prevRev; console.warn('Cloud sync error:',e.message); updateSyncStatusDisplay('⚠️ Upload failed','offline',lastCloudSyncTime); showToast("Upload failed: "+e.message,"error"); return false; } finally { _syncLocked = false; } }
+    async function _doCloudSync(){ if(_syncLocked){ scheduleCloudSync(); return false; } if(!currentUser||!navigator.onLine) return false; if(!db){ console.warn('Firestore not ready'); return false; } _syncLocked = true; updateSyncStatusDisplay('☁️ Uploading...','syncing',lastCloudSyncTime); let prevRev=_lastSeenCloudRev; try{ let doc=null; try{ doc=await db.collection('school').doc('shared').get(); }catch(e){ doc=null; } let cloudRev=(doc&&doc.exists)?cloudRevOf(doc.data()):-1; let cloudHas=(doc&&doc.exists)?cloudHasData(doc.data()):false; if(isLocalEmpty()&&cloudHas){ updateSyncStatusDisplay('⚠️ Cloud has data — load it first','offline',lastCloudSyncTime); showToast("Cloud has data — load it first, upload blocked to protect your data","warning"); return false; } if(cloudRev>_lastSeenCloudRev&&_localDirty){ updateSyncStatusDisplay('⚠️ Cloud changed elsewhere','offline',lastCloudSyncTime); showToast("Cloud changed on another device — upload blocked. Export your copy first, then choose.","warning"); showConflictPanel(); return false; } let newRev=Math.max(cloudRev,_lastSeenCloudRev,0)+1; _lastSeenCloudRev=newRev; await db.collection('school').doc('shared').set({teachers,classes,subjects,schedules,holidays,classPeriods,customDays,schoolInfo,globalPeriods,teacherOrder,rev:newRev,updated: firebase.firestore.FieldValue.serverTimestamp()}); lastCloudSyncTime=Date.now(); _applyingRemote=true; try{ saveToLocal(); }finally{ _applyingRemote=false; } _localDirty=false; try{ await saveSnapshot(newRev); }catch(e){} _conflictPending=false; hideConflictPanel(); loadHistoryList(); updateSyncStatusDisplay('☁️ Synced','online',lastCloudSyncTime); return true; } catch(e){ _lastSeenCloudRev=prevRev; console.warn('Cloud sync error:',e.message); updateSyncStatusDisplay('⚠️ Upload failed','offline',lastCloudSyncTime); showToast("Upload failed: "+e.message,"error"); return false; } finally { _syncLocked = false; } }
     function forceCloudSync(){ if(!currentUser){ showToast("Wait for auth","warning"); return; } if(!navigator.onLine){ showToast("No internet, saved locally","warning"); saveToLocal(); return; } scheduleCloudSync(); }
     async function forceCloudSyncNow(){ if(!currentUser){ showToast("Wait for auth","warning"); return false; } if(!navigator.onLine){ showToast("No internet, saved locally","warning"); saveToLocal(); return false; } clearTimeout(_syncTimer); let ok=await _doCloudSync(); if(ok) showToast("Upload complete"); return ok; }
-    async function loadFromCloudManual(overwrite=false){ if(overwrite && !confirm("Load from Cloud will REPLACE all local data. Continue?")) return; if(!currentUser){ showToast("Wait for auth","warning"); return; } if(!navigator.onLine){ showToast("No internet","error"); return; } if(!db){ showToast("Firebase not ready","warning"); return; } updateSyncStatusDisplay('📥 Downloading...','syncing',lastCloudSyncTime); try{ let doc=await db.collection('school').doc('shared').get(); if(doc.exists){ let d=doc.data(); updateCloudDiag(d); if(overwrite||shouldLoadCloud(d)){ if(!overwrite&&_localDirty&&!confirm("Cloud is newer than the copy you last saw. Loading it will discard your unsaved local changes. Continue?")){ updateSyncStatusDisplay('💾 Kept local','local',lastCloudSyncTime); return; } applyCloudData(d); lastCloudSyncTime=Date.now(); showToast(cloudHasData(d)?("Cloud data loaded: "+cloudCountsText(d)):"Cloud is empty — 0 teachers, 0 lessons, nothing to load",cloudHasData(d)?'success':'warning'); updateSyncStatusDisplay('☁️ Loaded','online',lastCloudSyncTime); } else { showToast("Local is newer","warning"); updateSyncStatusDisplay('💾 Local newer','local',lastCloudSyncTime); } } else { updateCloudDiag(null); showToast("No cloud data","warning"); } } catch(e){ showToast("Download failed: "+e.message,"error"); updateSyncStatusDisplay('⚠️ Failed','offline',lastCloudSyncTime); } }
-    async function manualRetrySync(){ if(!currentUser){ showToast("Wait for auth","warning"); return; } if(!navigator.onLine){ showToast("No internet","error"); return; } if(!db){ showToast("Firebase not ready","warning"); return; } updateSyncStatusDisplay('🔄 Checking...','syncing',lastCloudSyncTime); try{ let doc=await db.collection('school').doc('shared').get(); if(doc.exists){ let d=doc.data(); updateCloudDiag(d); if(shouldLoadCloud(d)){ if(_localDirty){ if(confirm("Cloud is newer. Overwrite local?")){ applyCloudData(d); lastCloudSyncTime=Date.now(); showToast("Loaded newer cloud data: "+cloudCountsText(d)); updateSyncStatusDisplay('☁️ Loaded newer','online',lastCloudSyncTime); } else updateSyncStatusDisplay('💾 Kept local','local',lastCloudSyncTime); } else { applyCloudData(d); lastCloudSyncTime=Date.now(); showToast("Loaded newer cloud data: "+cloudCountsText(d)); updateSyncStatusDisplay('☁️ Loaded newer','online',lastCloudSyncTime); } } else if(_localDirty){ showToast("Local is newer. Use Sync to Cloud.","warning"); updateSyncStatusDisplay('💻 Local newer','local',lastCloudSyncTime); } else { showToast("Already in sync.","success"); updateSyncStatusDisplay('✅ In sync','online',lastCloudSyncTime); } } else { updateCloudDiag(null); showToast("No cloud data. Use Sync to Cloud.","warning"); } } catch(e){ showToast("Sync failed: "+e.message,"error"); updateSyncStatusDisplay('⚠️ Sync failed','offline',lastCloudSyncTime); } }
+    async function loadFromCloudManual(overwrite=false){ if(overwrite && !confirm("Load from Cloud will REPLACE all local data. Continue?")) return; if(!currentUser){ showToast("Wait for auth","warning"); return; } if(!navigator.onLine){ showToast("No internet","error"); return; } if(!db){ showToast("Firebase not ready","warning"); return; } updateSyncStatusDisplay('📥 Downloading...','syncing',lastCloudSyncTime); try{ let doc=await db.collection('school').doc('shared').get(); if(doc.exists){ let d=doc.data(); updateCloudDiag(d); if(overwrite||shouldLoadCloud(d)){ if(!overwrite&&_localDirty&&!confirm("Cloud is newer than the copy you last saw. Loading it will discard your unsaved local changes. Continue?")){ updateSyncStatusDisplay('💾 Kept local','local',lastCloudSyncTime); return; } _conflictPending=false; hideConflictPanel(); applyCloudData(d); lastCloudSyncTime=Date.now(); showToast(cloudHasData(d)?("Cloud data loaded: "+cloudCountsText(d)):"Cloud is empty — 0 teachers, 0 lessons, nothing to load",cloudHasData(d)?'success':'warning'); updateSyncStatusDisplay('☁️ Loaded','online',lastCloudSyncTime); } else { showToast("Local is newer","warning"); updateSyncStatusDisplay('💾 Local newer','local',lastCloudSyncTime); } } else { updateCloudDiag(null); showToast("No cloud data","warning"); } } catch(e){ showToast("Download failed: "+e.message,"error"); updateSyncStatusDisplay('⚠️ Failed','offline',lastCloudSyncTime); } }
+    async function manualRetrySync(){ if(!currentUser){ showToast("Wait for auth","warning"); return; } if(!navigator.onLine){ showToast("No internet","error"); return; } if(!db){ showToast("Firebase not ready","warning"); return; } updateSyncStatusDisplay('🔄 Checking...','syncing',lastCloudSyncTime); try{ let doc=await db.collection('school').doc('shared').get(); if(doc.exists){ let d=doc.data(); updateCloudDiag(d); if(shouldLoadCloud(d)){ if(_localDirty){ if(confirm("Cloud is newer. Overwrite local?")){ applyCloudData(d); lastCloudSyncTime=Date.now(); _conflictPending=false; hideConflictPanel(); showToast("Loaded newer cloud data: "+cloudCountsText(d)); updateSyncStatusDisplay('☁️ Loaded newer','online',lastCloudSyncTime); } else { updateSyncStatusDisplay('💾 Kept local','local',lastCloudSyncTime); showConflictPanel(); } } else { applyCloudData(d); lastCloudSyncTime=Date.now(); _conflictPending=false; hideConflictPanel(); showToast("Loaded newer cloud data: "+cloudCountsText(d)); updateSyncStatusDisplay('☁️ Loaded newer','online',lastCloudSyncTime); } } else if(_localDirty){ showToast("Local is newer. Use Upload my changes.","warning"); updateSyncStatusDisplay('💻 Local newer','local',lastCloudSyncTime); } else { showToast("Already in sync.","success"); updateSyncStatusDisplay('✅ In sync','online',lastCloudSyncTime); } } else { updateCloudDiag(null); showToast("No cloud data. Use Upload my changes.","warning"); } } catch(e){ showToast("Sync failed: "+e.message,"error"); updateSyncStatusDisplay('⚠️ Sync failed','offline',lastCloudSyncTime); } }
     async function globalSave(){ saveToLocal(); let ok=await _doCloudSync(); if(ok) showToast("Saved & Uploaded ✓"); else showToast("Saved locally only — upload did not complete","warning"); }
     function updateSyncStatusDisplay(msg,cls,lastMills){ let status=document.getElementById('sync-status'); let last=document.getElementById('last-sync-info'); status.innerHTML=msg; status.className='sync-status '+cls; if(lastMills){ let d=new Date(lastMills); last.innerHTML='Last cloud sync: '+d.toLocaleString(); } else if(lastCloudSyncTime){ let d=new Date(lastCloudSyncTime); last.innerHTML='Last cloud sync: '+d.toLocaleString(); } else last.innerHTML='Last cloud sync: Never'; }
 
@@ -843,28 +911,36 @@
     // ======================== PERIODS EDITOR ========================
     function loadPeriods(){
         let cid = document.getElementById('period-class-select').value;
-        if(!cid){ document.getElementById('periods-list').innerHTML='<p>Select a class first</p>'; return; }
+        let statusEl=document.getElementById('period-class-status');
+        let infoEl=document.getElementById('period-delete-info');
+        if(!cid){ document.getElementById('periods-list').innerHTML='<p>Select a class first</p>'; if(statusEl) statusEl.innerHTML=''; if(infoEl) infoEl.innerHTML=''; return; }
         let periods = getPeriodsForClass(parseInt(cid));
+        let hasOwn = !!(classPeriods[cid] && classPeriods[cid].length);
+        let globalUsers = classes.filter(c=>!(classPeriods[c.id]&&classPeriods[c.id].length));
+        if(statusEl){ statusEl.innerHTML='<strong>'+escapeHtml(getClassName(parseInt(cid)))+'</strong> — '+(hasOwn?('Has its own periods ('+periods.length+' periods)'):('Uses Global periods ('+periods.length+' periods)'))+'<br><span style="color:#555;">Classes using Global: '+(globalUsers.length?globalUsers.map(c=>escapeHtml(c.name+'-'+c.section)).join(', '):'None — every class has its own list')+'</span>'; }
         let container = document.getElementById('periods-list');
         container.innerHTML = '';
         periods.forEach((p, idx) => {
             let div = document.createElement('div');
             div.className = 'period-row';
-            div.innerHTML = '<input type="text" class="period-name" value="' + escapeHtml(p.name) + '" placeholder="Period name" style="flex:2;min-width:120px;">' +
-                '<input type="time" class="period-start" value="' + p.start + '" style="width:130px;">' +
-                '<input type="time" class="period-end" value="' + p.end + '" style="width:130px;">' +
-                '<select class="period-type" style="width:110px;"><option value="class"' + (p.type==='class'?' selected':'') + '>Class</option><option value="break"' + (p.type==='break'?' selected':'') + '>Break</option><option value="lunch"' + (p.type==='lunch'?' selected':'') + '>Lunch</option><option value="duty"' + (p.type==='duty'?' selected':'') + '>Duty</option></select>' +
+            div.innerHTML = '<input type="text" class="period-name" oninput="markPeriodsDirty()" value="' + escapeHtml(p.name) + '" placeholder="Period name" style="flex:2;min-width:120px;">' +
+                '<input type="time" class="period-start" onchange="markPeriodsDirty()" value="' + p.start + '" style="width:130px;">' +
+                '<input type="time" class="period-end" onchange="markPeriodsDirty()" value="' + p.end + '" style="width:130px;">' +
+                '<select class="period-type" onchange="markPeriodsDirty()" style="width:110px;"><option value="class"' + (p.type==='class'?' selected':'') + '>Class</option><option value="break"' + (p.type==='break'?' selected':'') + '>Break</option><option value="lunch"' + (p.type==='lunch'?' selected':'') + '>Lunch</option><option value="duty"' + (p.type==='duty'?' selected':'') + '>Duty</option></select>' +
+                '<label style="font-size:11px;white-space:nowrap;"><input type="checkbox" class="period-skip" style="width:auto;min-height:0;"' + (p.skipped?' checked':'') + ' onchange="setPeriodSkipped(' + idx + ', this.checked)"> Skip / ကျော်မည်</label>' +
+                '<span class="period-lesson-count">' + countLessonsForPeriod(parseInt(cid), p.name) + ' lesson(s)</span>' +
                 '<button class="btn-sm btn-danger" onclick="removePeriodRow(' + idx + ')">X</button>';
             container.appendChild(div);
         });
+        if(infoEl){ infoEl.textContent='Lessons per period — '+periods.map(p=>p.name+': '+countLessonsForPeriod(parseInt(cid), p.name)).join(' • '); }
         let cloneSel = document.getElementById('clone-from-class');
         cloneSel.innerHTML = '<option value="">-- Source Class --</option>' + classes.filter(c => c.id != cid).map(c => '<option value="' + c.id + '">' + c.name + '-' + c.section + '</option>').join('');
     }
-    function addPeriodRow(){ let cid = document.getElementById('period-class-select').value; if(!cid){ showToast("Select a class first","warning"); return; } if(!classPeriods[cid]) classPeriods[cid] = JSON.parse(JSON.stringify(getPeriodsForClass(parseInt(cid)))); let base="New Period", nm=base, k=2; while(classPeriods[cid].some(p=>p.name===nm)){ nm=base+" "+k; k++; } classPeriods[cid].push({ name:nm, start:"09:00", end:"10:00", type:"class" }); loadPeriods(); }
-    function removePeriodRow(idx){ let cid = document.getElementById('period-class-select').value; if(!cid) return; if(!classPeriods[cid]) classPeriods[cid] = JSON.parse(JSON.stringify(getPeriodsForClass(parseInt(cid)))); if(classPeriods[cid].length > 1){ classPeriods[cid].splice(idx,1); loadPeriods(); } else showToast("Cannot delete last period","warning"); }
+    function addPeriodRow(){ let cid = document.getElementById('period-class-select').value; if(!cid){ showToast("Select a class first","warning"); return; } if(!classPeriods[cid]) classPeriods[cid] = JSON.parse(JSON.stringify(getPeriodsForClass(parseInt(cid)))); let base="New Period", nm=base, k=2; while(classPeriods[cid].some(p=>p.name===nm)){ nm=base+" "+k; k++; } classPeriods[cid].push({ name:nm, start:"09:00", end:"10:00", type:"class" }); loadPeriods(); markPeriodsDirty(); }
+    function removePeriodRow(idx){ let cid = document.getElementById('period-class-select').value; if(!cid) return; if(!classPeriods[cid]) classPeriods[cid] = JSON.parse(JSON.stringify(getPeriodsForClass(parseInt(cid)))); if(classPeriods[cid].length > 1){ classPeriods[cid].splice(idx,1); loadPeriods(); markPeriodsDirty(); } else showToast("Cannot delete last period","warning"); }
     function validatePeriodList(list){ let names=new Set(); for(let p of list){ let n=(p.name||'').trim().toLowerCase(); if(names.has(n)) return "Duplicate period name: "+p.name; names.add(n); if(!p.start||!p.end) return "Start/End time required: "+p.name; if(timeToMinutes(p.end)<=timeToMinutes(p.start)) return "End must be after start: "+p.name; } let sorted=[...list].sort((a,b)=>timeToMinutes(a.start)-timeToMinutes(b.start)); for(let i=1;i<sorted.length;i++){ if(timeToMinutes(sorted[i].start)<timeToMinutes(sorted[i-1].end)) return "Overlapping periods: "+sorted[i-1].name+" and "+sorted[i].name; } return null; }
-    function savePeriods(){ let cid = document.getElementById('period-class-select').value; if(!cid){ showToast("Select a class","error"); return; } let newPeriods = []; let rows = document.querySelectorAll('#periods-list .period-row'); for(let row of rows){ let name=row.querySelector('.period-name').value.trim(),start=row.querySelector('.period-start').value,end=row.querySelector('.period-end').value,type=row.querySelector('.period-type').value; if(!name){ showToast("Period name required","error"); return; } if(!start||!end){ showToast("Start/End time required","error"); return; } newPeriods.push({name,start,end,type}); } if(newPeriods.length===0){ showToast("At least one period required","error"); return; } let perr=validatePeriodList(newPeriods); if(perr){ showToast(perr,"error"); return; } let oldPeriods=getPeriodsForClass(parseInt(cid)); schedules.forEach(s => { if(s.classId == cid && s.periodName){ let matching = newPeriods.find(p => p.name === s.periodName); if(matching){ s.startTime = matching.start; s.endTime = matching.end; } else { let oi=oldPeriods.findIndex(p=>p.name===s.periodName); if(oi>=0&&newPeriods[oi]){ s.periodName=newPeriods[oi].name; s.startTime=newPeriods[oi].start; s.endTime=newPeriods[oi].end; } } } }); let orphaned=schedules.filter(s=>s.classId==cid&&s.periodName&&!newPeriods.some(p=>p.name===s.periodName)); if(orphaned.length){ if(!confirm(orphaned.length+" lesson(s) use period(s) that were removed. Those lessons will be deleted. Continue?")) return; schedules=schedules.filter(s=>!(s.classId==cid&&s.periodName&&!newPeriods.some(p=>p.name===s.periodName))); } classPeriods[cid] = newPeriods; saveToLocal(); forceCloudSync(); updateAll(); showToast("Periods saved"); }
-    function clonePeriods(){ let src = document.getElementById('clone-from-class').value,tgt = document.getElementById('period-class-select').value; if(!src||!tgt){ showToast("Select both source and target class","warning"); return; } if(!confirm("Replace the target class periods with the source class periods? Lessons will be re-timed to the new periods.")) return; let cloned = JSON.parse(JSON.stringify(getPeriodsForClass(parseInt(src)))); let perr=validatePeriodList(cloned); if(perr){ showToast(perr,"error"); return; } classPeriods[tgt] = cloned; schedules.forEach(s=>{ if(s.classId==tgt&&s.periodName){ let m=cloned.find(p=>p.name===s.periodName); if(m){ s.startTime=m.start; s.endTime=m.end; } } }); saveToLocal(); forceCloudSync(); loadPeriods(); showToast("Cloned"); }
+    function savePeriods(){ let cid = document.getElementById('period-class-select').value; if(!cid){ showToast("Select a class","error"); return; } let newPeriods = []; let rows = document.querySelectorAll('#periods-list .period-row'); for(let row of rows){ let name=row.querySelector('.period-name').value.trim(),start=row.querySelector('.period-start').value,end=row.querySelector('.period-end').value,type=row.querySelector('.period-type').value; let sk=row.querySelector('.period-skip'); if(!name){ showToast("Period name required","error"); return; } if(!start||!end){ showToast("Start/End time required","error"); return; } let np={name:name,start:start,end:end,type:type}; if(sk&&sk.checked) np.skipped=true; newPeriods.push(np); } if(newPeriods.length===0){ showToast("At least one period required","error"); return; } let perr=validatePeriodList(newPeriods); if(perr){ showToast(perr,"error"); return; } let oldPeriods=getPeriodsForClass(parseInt(cid)); schedules.forEach(s => { if(s.classId == cid && s.periodName){ let matching = newPeriods.find(p => p.name === s.periodName); if(matching){ s.startTime = matching.start; s.endTime = matching.end; } else { let oi=oldPeriods.findIndex(p=>p.name===s.periodName); if(oi>=0&&newPeriods[oi]){ s.periodName=newPeriods[oi].name; s.startTime=newPeriods[oi].start; s.endTime=newPeriods[oi].end; } } } }); let orphaned=schedules.filter(s=>s.classId==cid&&s.periodName&&!newPeriods.some(p=>p.name===s.periodName)); if(orphaned.length){ if(!confirm(orphaned.length+" lesson(s) use period(s) that were removed. Those lessons will be deleted. Continue?")) return; schedules=schedules.filter(s=>!(s.classId==cid&&s.periodName&&!newPeriods.some(p=>p.name===s.periodName))); } classPeriods[cid] = newPeriods; clearPeriodsDirty(); saveToLocal(); forceCloudSync(); updateAll(); showToast("Periods saved"); }
+    function clonePeriods(){ let src = document.getElementById('clone-from-class').value,tgt = document.getElementById('period-class-select').value; if(!src||!tgt){ showToast("Select both source and target class","warning"); return; } if(!confirm("Replace the target class periods with the source class periods? Lessons will be re-timed to the new periods.")) return; let cloned = JSON.parse(JSON.stringify(getPeriodsForClass(parseInt(src)))); let perr=validatePeriodList(cloned); if(perr){ showToast(perr,"error"); return; } classPeriods[tgt] = cloned; schedules.forEach(s=>{ if(s.classId==tgt&&s.periodName){ let m=cloned.find(p=>p.name===s.periodName); if(m){ s.startTime=m.start; s.endTime=m.end; } } }); saveToLocal(); forceCloudSync(); loadPeriods(); clearPeriodsDirty(); showToast("Cloned"); }
 
     // ======================== TIMETABLE RENDER ========================
     // Helper: get schedules for a period slot by name OR time overlap
@@ -893,14 +969,15 @@
     }
     function renderTimetable(){
         let sid = document.getElementById('view-select').value;
-        if(!sid){ document.getElementById('timetable-container').innerHTML='<p>Select an item</p>'; return; }
+        if(!sid){ if(teachers.length===0&&classes.length===0){ document.getElementById('timetable-container').innerHTML='<div id="first-run-guide" class="first-run-guide"><h3>👋 Start here — စတင်ရန်</h3><ol><li><strong>Periods / အချိန်</strong> — set the school periods first <button onclick="switchTab(\'periods\')">Go to Periods</button></li><li><strong>Teachers / ဆရာ</strong> — add teachers <button onclick="switchTab(\'teachers\')">Go to Teachers</button></li><li><strong>Classes / အတန်း</strong> — add classes <button onclick="switchTab(\'classes\')">Go to Classes</button></li><li><strong>Click a cell to add a lesson / အချိန်ဇယား ထည့်ရန်</strong> — pick a teacher or class above, then tap any empty cell.</li></ol></div>'; } else document.getElementById('timetable-container').innerHTML='<p>Select an item</p>'; return; }
         if(currentView === 'teacher'){
             let teacherId = parseInt(sid);
             let teacherScheds = schedules.filter(s => s.teacher === teacherId);
-            if(teacherScheds.length === 0){ document.getElementById('timetable-container').innerHTML='<p>No schedules for this teacher</p>'; updateTimetableHeader(); document.getElementById('teacher-class-info').innerHTML = '🏫 Teaches: ' + getTeacherClassString(teacherId); return; }
+            if(teacherScheds.length === 0){ document.getElementById('timetable-container').innerHTML='<p>No schedules for this teacher</p><button onclick="openAddFirstLessonForTeacher('+teacherId+')" class="btn-success">➕ Add first lesson / ပထမဆုံး သင်ချိန် ထည့်မည်</button>'; updateTimetableHeader(); document.getElementById('teacher-class-info').innerHTML = '🏫 Teaches: ' + getTeacherClassString(teacherId); return; }
             let dayMap = {};
+            let _skippedTeacherCount=0;
             customDays.forEach(day => dayMap[day] = []);
-            teacherScheds.forEach(s => { if(dayMap[s.day]) dayMap[s.day].push(s); });
+            teacherScheds.forEach(s => { let _sp=getPeriodsForClass(s.classId).find(p=>p.name===s.periodName); if(_sp&&_sp.skipped){ _skippedTeacherCount++; return; } if(dayMap[s.day]) dayMap[s.day].push(s); });
             let daysData = {}, slotMap = new Map();
             for(let day of customDays){
                 let blocks = [];
@@ -951,11 +1028,12 @@
                     }
                     if(!blks.length){ cellContent='<div class="add-btn" title="Add lesson" onclick="openAddModalFree(\''+day+'\',\''+slot.start+'\',\''+slot.end+'\','+teacherId+')">+</div>'; }
                     let isSat=day==='Saturday',isSun=day==='Sunday';
-                    html+='<td style="background:'+(isSat?'#fff3e0':isSun?'#fce4ec':'')+'">'+cellContent+'</td>';
+                    let _tClick = !blks.length ? ' onclick="openAddModalFree(\''+day+'\',\''+slot.start+'\',\''+slot.end+'\','+teacherId+')"' : ''; html+='<td'+_tClick+' style="background:'+(isSat?'#fff3e0':isSun?'#fce4ec':'')+(!blks.length?';cursor:pointer':'')+'">'+cellContent+'</td>';
                 }
                 html+='</tr>';
             }
             html+='</tbody></table>';
+            if(_skippedTeacherCount>0) html+='<div class="skipped-note">⏭️ '+_skippedTeacherCount+' lesson(s) in skipped periods are hidden — they are kept in the data.</div>';
             document.getElementById('timetable-container').innerHTML=html;
             updateTimetableHeader();
             document.getElementById('teacher-class-info').innerHTML='🏫 Teaches: '+getTeacherClassString(teacherId);
@@ -964,7 +1042,7 @@
         // Class view
         let classId = parseInt(sid);
         let filtered = schedules.filter(s => s.classId === classId);
-        let periodsToUse = getPeriodsForClass(classId).sort((a,b) => timeToMinutes(a.start) - timeToMinutes(b.start));
+        let periodsToUse = getPeriodsForClass(classId).filter(p=>!p.skipped).sort((a,b) => timeToMinutes(a.start) - timeToMinutes(b.start)); let _skippedClassPeriods = getPeriodsForClass(classId).filter(p=>p.skipped);
         let dayNames={Monday:'MON',Tuesday:'TUE',Wednesday:'WED',Thursday:'THU',Friday:'FRI',Saturday:'SAT',Sunday:'SUN'};
         let typeLabel={class:'',duty:'🔔 Duty',break:'☕ Break',lunch:'🍽️ Lunch'};
         let html='<table class="timetable"><thead><tr><th>Period</th>';
@@ -998,7 +1076,7 @@
                     if(seenSlotKey.has(key)) return false;
                     seenSlotKey.add(key); return true;
                 });
-                html+='<td style="'+(isSat?'background:#fff3e0':isSun?'background:#fce4ec':'')+'">';
+                html+='<td'+(ds.length===0?' onclick="openAddModal(\''+day+'\',\''+p.name+'\','+classId+')"':'')+' style="'+(isSat?'background:#fff3e0':isSun?'background:#fce4ec':'')+(ds.length===0?';cursor:pointer':'')+'">';
                 for(let s of ds){
                     let cardCls='schedule-card'; if(s.type==='break') cardCls+=' break'; else if(s.type==='lunch') cardCls+=' lunch'; else if(s.type==='duty') cardCls+=' duty';
                     let portionText=s.portion?' ('+s.portion+')':'';
@@ -1012,6 +1090,7 @@
             html+='</tr>';
         }
         html+='</tbody></table>';
+        if(_skippedClassPeriods.length){ let _skN=_skippedClassPeriods.reduce((n,p)=>n+countLessonsForPeriod(classId,p.name),0); html+='<div class="skipped-note">⏭️ Skipped: '+_skippedClassPeriods.map(p=>escapeHtml(p.name)).join(', ')+' — '+_skN+' lesson(s) kept but hidden.</div>'; }
         document.getElementById('timetable-container').innerHTML=html;
         updateTimetableHeader();
         document.getElementById('teacher-class-info').innerHTML='';
@@ -1066,10 +1145,11 @@
         let sids=Array.from(document.querySelectorAll('#custom-subject-checks input:checked')).map(cb=>parseInt(cb.value));
         let types=Array.from(document.querySelectorAll('#custom-type-checks input:checked')).map(cb=>cb.value);
         if(!cids.length){ document.getElementById('timetable-container').innerHTML='<p>Select at least one class</p>'; return; }
-        let timeSlotMap=new Map(), cellData={};
+        let timeSlotMap=new Map(), cellData={}; let _skippedCustomCount=0;
         for(let cid of cids){
             let classScheds=schedules.filter(s=>s.classId===cid&&s.day===day&&types.includes(s.type)&&(sids.length===0||!s.subject||sids.includes(s.subject)));
             for(let s of classScheds){
+                let _sp2=getPeriodsForClass(cid).find(p=>p.name===s.periodName); if(_sp2&&_sp2.skipped){ _skippedCustomCount++; continue; }
                 let start=s.startTime,end=s.endTime;
                 if(!start||!end){ let ps=getPeriodsForClass(cid),p=ps.find(p=>p.name===s.periodName); if(p){start=p.start;end=p.end;} }
                 if(!start||!end) continue;
@@ -1092,7 +1172,7 @@
             html+='<tr><td class="time-cell"><strong>'+formatTime(slot.start)+'</strong><br><small>→&nbsp;'+formatTime(slot.end)+'</small></td>';
             for(let cid of cids){
                 let cellScheds=(cellData[cid+'|'+key])||[];
-                html+='<td>';
+                html+='<td'+(cellScheds.length===0?' onclick="openAddModalForClass(\''+day+'\',\''+slot.start+'\',\''+slot.end+'\','+cid+')" style="cursor:pointer;"':'')+'>';
                 if(cellScheds.length===0){ html+='<div class="add-btn" title="Add lesson" onclick="openAddModalForClass(\''+day+'\',\''+slot.start+'\',\''+slot.end+'\','+cid+')">+</div>'; }
                 else { for(let s of cellScheds){
                     let cardCls='schedule-card'; if(s.type==='break') cardCls+=' break'; else if(s.type==='lunch') cardCls+=' lunch'; else if(s.type==='duty') cardCls+=' duty';
@@ -1106,6 +1186,7 @@
             html+='</tr>';
         }
         html+='</tbody></table>';
+        if(_skippedCustomCount>0) html+='<div class="skipped-note">⏭️ '+_skippedCustomCount+' lesson(s) in skipped periods are hidden — they are kept in the data.</div>';
         document.getElementById('timetable-container').innerHTML=html;
         let today=new Date();
         let logoHtml=schoolInfo.logo?'<div class="logo-container"><img src="'+schoolInfo.logo+'"></div>':'';
@@ -1154,6 +1235,7 @@
             for (let day of customDays) {
                 let blocks = [];
                 for (let s of dayMap[day]) {
+                    let _sp3=getPeriodsForClass(s.classId).find(p=>p.name===s.periodName); if(_sp3&&_sp3.skipped) continue;
                     let start = s.startTime, end = s.endTime;
                     if (!start||!end) { let ps=getPeriodsForClass(s.classId),p=ps.find(p=>p.name===s.periodName); if(p){start=p.start;end=p.end;} }
                     if (start&&end) blocks.push({start,end,type:'occupied',schedule:s});
@@ -1265,7 +1347,7 @@
         } else if (currentView === 'class' && sid) {
             let classId = parseInt(sid);
             let filtered = schedules.filter(s => s.classId === classId);
-            let periodsToUse = getPeriodsForClass(classId).sort((a,b) => timeToMinutes(a.start) - timeToMinutes(b.start));
+            let periodsToUse = getPeriodsForClass(classId).filter(p=>!p.skipped).sort((a,b) => timeToMinutes(a.start) - timeToMinutes(b.start)); let _skippedClassPeriods = getPeriodsForClass(classId).filter(p=>p.skipped);
 
             if (layout === 'horizontal') {
                 // Periods as rows, days as columns
@@ -1362,6 +1444,7 @@
             for (let cid of cids) {
                 let classScheds = schedules.filter(s=>s.classId===cid&&s.day===day&&types.includes(s.type)&&(sids.length===0||!s.subject||sids.includes(s.subject)));
                 for (let s of classScheds) {
+                    let _sp4=getPeriodsForClass(cid).find(p=>p.name===s.periodName); if(_sp4&&_sp4.skipped) continue;
                     let start=s.startTime,end=s.endTime;
                     if(!start||!end){let ps=getPeriodsForClass(cid),p=ps.find(p=>p.name===s.periodName);if(p){start=p.start;end=p.end;}}
                     if(!start||!end) continue;
@@ -1500,10 +1583,10 @@
     function deleteSubject(i){ let sub=subjects[i]; if(!sub) return; let n=schedules.filter(s=>s.subject==sub.id).length; if(!confirm("Delete subject '"+sub.name+"'?"+(n?" "+n+" lesson(s) using it will also be deleted.":""))) return; subjects.splice(i,1); if(n) schedules=schedules.filter(s=>s.subject!==sub.id); saveToLocal(); forceCloudSync(); updateAll(); }
 
     // ======================== GLOBAL PERIODS ========================
-    function addGlobalPeriod(){ let name=document.getElementById('global-period-name').value.trim(),start=document.getElementById('global-period-start').value,end=document.getElementById('global-period-end').value,type=document.getElementById('global-period-type').value; if(!name||!start||!end){ showToast("Fill all","error"); return; } let perr=validatePeriodList([...globalPeriods,{name,start,end,type}]); if(perr){ showToast(perr,"error"); return; } globalPeriods.push({name,start,end,type}); saveToLocal(); forceCloudSync(); updateGlobalPeriodsList(); renderTimetable(); }
-    function deleteGlobalPeriod(idx){ let p=globalPeriods[idx]; if(!p) return; if(!confirm("Delete period '"+p.name+"'?")) return; globalPeriods.splice(idx,1); saveToLocal(); forceCloudSync(); updateGlobalPeriodsList(); renderTimetable(); }
-    function resetGlobalPeriods(){ if(!confirm("Reset global periods to the default 20? Your current global periods will be replaced.")) return; globalPeriods=generateDefaultGlobalPeriods(); saveToLocal(); forceCloudSync(); updateGlobalPeriodsList(); renderTimetable(); showToast("Reset to 20 periods"); }
-    function updateGlobalPeriodsList(){ let cont=document.getElementById('global-periods-list'); if(cont) cont.innerHTML=globalPeriods.map((p,i)=>'<div class="global-period-item"><span><strong>'+p.name+'</strong> '+p.start+'-'+p.end+' '+p.type+'</span><button onclick="deleteGlobalPeriod('+i+')" class="btn-sm btn-danger">X</button></div>').join(''); let avail=document.getElementById('avail-period'); if(avail) avail.innerHTML=globalPeriods.map(p=>'<option value="'+p.name+'">'+p.name+' ('+p.start+'-'+p.end+')</option>').join(''); }
+    function addGlobalPeriod(){ let name=document.getElementById('global-period-name').value.trim(),start=document.getElementById('global-period-start').value,end=document.getElementById('global-period-end').value,type=document.getElementById('global-period-type').value; if(!name||!start||!end){ showToast("Fill all","error"); return; } let perr=validatePeriodList([...globalPeriods,{name,start,end,type}]); if(perr){ showToast(perr,"error"); return; } let _gu=globalUsageCounts(); if(!confirm("Add global period '"+name+"'? Global periods are used by "+_gu.classes+" class(es) with "+_gu.lessons+" lesson(s). Continue?")) return; globalPeriods.push({name,start,end,type}); saveToLocal(); forceCloudSync(); updateGlobalPeriodsList(); renderTimetable(); }
+    function deleteGlobalPeriod(idx){ let p=globalPeriods[idx]; if(!p) return; let _gu=globalUsageCounts(); if(!confirm("Delete global period '"+p.name+"'? Global periods are used by "+_gu.classes+" class(es) with "+_gu.lessons+" lesson(s). Continue?")) return; globalPeriods.splice(idx,1); saveToLocal(); forceCloudSync(); updateGlobalPeriodsList(); renderTimetable(); }
+    function resetGlobalPeriods(){ let _gu2=globalUsageCounts(); if(!confirm("Reset global periods to the default 20? Global periods are used by "+_gu2.classes+" class(es) with "+_gu2.lessons+" lesson(s). Your current global periods will be replaced.")) return; globalPeriods=generateDefaultGlobalPeriods(); saveToLocal(); forceCloudSync(); updateGlobalPeriodsList(); renderTimetable(); showToast("Reset to 20 periods"); }
+    function updateGlobalPeriodsList(){ let cont=document.getElementById('global-periods-list'); if(cont) cont.innerHTML=globalPeriods.map((p,i)=>'<div class="global-period-item"><span><strong>'+p.name+'</strong> '+p.start+'-'+p.end+' '+p.type+'</span><button onclick="deleteGlobalPeriod('+i+')" class="btn-sm btn-danger">X</button></div>').join(''); let _gul=document.getElementById('global-usage-line'); if(_gul){ let _gu3=globalUsageCounts(); _gul.textContent='Used by '+_gu3.classes+' class(es) using Global, '+_gu3.lessons+' lesson(s).'; } let avail=document.getElementById('avail-period'); if(avail) avail.innerHTML=globalPeriods.map(p=>'<option value="'+p.name+'">'+p.name+' ('+p.start+'-'+p.end+')</option>').join(''); }
 
     // ======================== CLASSES, DAYS, HOLIDAYS ========================
     function addClass(){ let n=document.getElementById('class-name').value.trim(),s=document.getElementById('section-name').value.trim(),editId=document.getElementById('class-name').getAttribute('data-edit-id'); if(!n||!s){ showToast("Both required","error"); return; } if(classes.some(c=>c.name.trim().toLowerCase()===n.toLowerCase()&&c.section.trim().toLowerCase()===s.toLowerCase()&&(!editId||c.id!=parseInt(editId)))){ showToast("This class already exists","error"); return; } if(editId){ let idx=classes.findIndex(c=>c.id==parseInt(editId)); if(idx!==-1){ classes[idx]={...classes[idx],name:n,section:s}; showToast("Updated"); } } else { classes.push({id:newId(),name:n,section:s}); showToast("Added"); } saveToLocal(); forceCloudSync(); updateAll(); clearClassForm(); }
@@ -1524,7 +1607,7 @@
         document.getElementById('modal-edit-index').value = -1;
         document.getElementById('modal-edit-id').value = '';
         document.getElementById('modal-delete-btn').style.display = 'none';
-        document.getElementById('modal-title').textContent = '➕ Add Schedule';
+        setModalTitle('➕ Add Schedule အချိန်ဇယား ထည့်မည်');
         let subjectSelect = document.getElementById('modal-subject');
         subjectSelect.innerHTML = '<option value="">-- None (break / duty) --</option>' + [...subjects].sort((a,b)=>a.name.localeCompare(b.name)).map(s=>'<option value="'+s.id+'">'+escapeHtml(s.name)+'</option>').join('');
         document.getElementById('modal-class-group').style.display = 'none';
@@ -1538,7 +1621,7 @@
         document.getElementById('modal-edit-index').value = -1;
         document.getElementById('modal-edit-id').value = '';
         document.getElementById('modal-delete-btn').style.display = 'none';
-        document.getElementById('modal-title').textContent = '➕ Add Schedule';
+        setModalTitle('➕ Add Schedule အချိန်ဇယား ထည့်မည်');
         let subjectSelect = document.getElementById('modal-subject');
         subjectSelect.innerHTML = '<option value="">-- None (break / duty) --</option>' + [...subjects].sort((a,b)=>a.name.localeCompare(b.name)).map(s=>'<option value="'+s.id+'">'+escapeHtml(s.name)+'</option>').join('');
         document.getElementById('modal-portion-group').style.display = 'none';
@@ -1549,7 +1632,7 @@
         document.getElementById('schedule-modal').classList.add('active');
     }
     function openAddModalFree(day, start, end, teacherId){ _openFreeModal(day, start, end, null, teacherId); }
-    function openAddModalForClass(day, start, end, classId){ let ps=getPeriodsForClass(classId); let pm=ps.find(p=>p.start===start&&p.end===end); _openFreeModal(day, start, end, classId, null); if(pm) modalContext.periodName=pm.name; }
+    function openAddModalForClass(day, start, end, classId){ let ps=getPeriodsForClass(classId); let pm=ps.find(p=>p.start===start&&p.end===end); _openFreeModal(day, start, end, classId, null); if(pm) modalContext.periodName=pm.name; setModalTitle('➕ Add Schedule အချိန်ဇယား ထည့်မည်'); }
     function openEditModal(el){
         let sid = el.getAttribute('data-id');
         let idx = schedules.findIndex(s=>String(s.id)===String(sid));
@@ -1559,7 +1642,7 @@
         document.getElementById('modal-edit-index').value = idx;
         document.getElementById('modal-edit-id').value = schedule.id;
         document.getElementById('modal-delete-btn').style.display = 'block';
-        document.getElementById('modal-title').textContent = '✏️ Edit Schedule';
+        setModalTitle('✏️ Edit Schedule ပြင်မည်');
         let subjectSelect = document.getElementById('modal-subject');
         subjectSelect.innerHTML = '<option value="">-- None (break / duty) --</option>' + [...subjects].sort((a,b)=>a.name.localeCompare(b.name)).map(s=>'<option value="'+s.id+'">'+escapeHtml(s.name)+'</option>').join('');
         document.getElementById('modal-class-group').style.display = 'none';
@@ -1696,7 +1779,7 @@
     }
     function editTeacherById(id){ let t=teachers.find(x=>x.id==id); if(t){ document.getElementById('teacher-name').value=t.name; document.getElementById('teacher-color').value=t.color; document.getElementById('teacher-name').setAttribute('data-edit-id',t.id); document.querySelectorAll('#teacher-subjects-list input').forEach(cb=>{ cb.checked=t.subjectIds?.includes(parseInt(cb.value)); }); updateTeacherAvailableList(t.id); document.getElementById('edit-teacher-select').value=t.id; showToast("Loaded"); } }
     function updateAll(){ updateLists(); updateDashboard(); if(currentView==='custom') renderCustomTimetable(); else { renderTimetable(); updateTimetableHeader(); } let pSel=document.getElementById('period-class-select'); if(pSel&&pSel.value) loadPeriods(); }
-    function switchTab(t, ev){
+    function switchTab(t, ev){ if(t!=='periods'&&_periodDirty){ let _act=document.querySelector('.tab-content.active'); if(_act&&_act.id==='periods-content'){ if(!confirm('You have unsaved period changes. Switch tab and lose them?')) return; } }
         document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
         document.querySelectorAll('.tab').forEach(btn=>btn.classList.remove('active'));
         let _el=document.getElementById(t+'-content');
@@ -1710,7 +1793,7 @@
         if(t==='timetable'){ if(currentView==='custom') renderCustomTimetable(); else renderTimetable(); }
         if(t==='periods'){ let pSel=document.getElementById('period-class-select'); if(pSel&&pSel.value) loadPeriods(); }
         if(t==='teachers') updateLists();
-        if(t==='settings') updateGlobalPeriodsList();
+        if(t==='settings'){ updateGlobalPeriodsList(); loadHistoryList(); }
     }
     function exportData(){ let a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify({teachers,classes,subjects,schedules,holidays,classPeriods,customDays,schoolInfo,globalPeriods,teacherOrder},null,2)])); a.download='backup_'+Date.now()+'.json'; a.click(); showToast("Exported"); }
     function importData(){ document.getElementById('import-file').click(); document.getElementById('import-file').onchange=e=>{ let f=e.target.files[0]; if(!f) return; let r=new FileReader(); r.onload=ev=>{ let d=null; try{ d=JSON.parse(ev.target.result); }catch(err){ showToast("Import failed: file is not valid JSON","error"); return; } if(!d||typeof d!=='object'||Array.isArray(d)||!Array.isArray(d.teachers)||!Array.isArray(d.classes)||!Array.isArray(d.subjects)||!Array.isArray(d.schedules)){ showToast("Import failed: file is not a timetable backup","error"); return; } if(!confirm("Import will REPLACE all current data ("+teachers.length+" teachers, "+classes.length+" classes, "+schedules.length+" lessons). A backup of the current data will be saved first. Continue?")) return; try{ localStorage.setItem('tm_data_backup_latest', JSON.stringify({teachers,classes,subjects,schedules,holidays,classPeriods,customDays,schoolInfo,globalPeriods,teacherOrder,_updated:Date.now()})); }catch(err){} teachers=d.teachers; classes=d.classes; subjects=d.subjects; schedules=ensureScheduleIds(d.schedules); holidays=Array.isArray(d.holidays)?d.holidays:[]; classPeriods=(d.classPeriods&&typeof d.classPeriods==='object'&&!Array.isArray(d.classPeriods))?d.classPeriods:{}; customDays=Array.isArray(d.customDays)&&d.customDays.length?d.customDays:['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']; if(d.schoolInfo&&typeof d.schoolInfo==='object') schoolInfo=d.schoolInfo; if(Array.isArray(d.globalPeriods)&&d.globalPeriods.length) globalPeriods=d.globalPeriods; if(Array.isArray(d.teacherOrder)) teacherOrder=d.teacherOrder; updateLogoPreview(); saveToLocal(); forceCloudSync(); updateAll(); showToast("Imported"); }; r.onerror=()=>showToast("Import failed: could not read file","error"); r.readAsText(f); }; }
@@ -1723,6 +1806,7 @@
     // blank page. Open the preview for the current view first.
     window.addEventListener('beforeprint', () => { let overlay=document.getElementById('print-preview-overlay'); if(overlay && !overlay.classList.contains('active')){ let sid=document.getElementById('view-select').value; if((currentView==='teacher'||currentView==='class')&&!sid) return; if(currentView==='custom'&&!document.querySelectorAll('#custom-class-checks input:checked').length) return; openPrintPreview(_currentLayout||'horizontal', false); } });
 
+    window.addEventListener('beforeunload', (e)=>{ if(_periodDirty){ e.preventDefault(); e.returnValue=''; } });
     window.addEventListener('online', ()=>{ if(currentUser) manualRetrySync(); });
     window.addEventListener('offline', ()=>{ updateSyncStatusDisplay('⚠️ Offline (local only)','offline',lastCloudSyncTime); showToast("Offline mode","warning"); });
 
@@ -1733,14 +1817,14 @@
             firebase.initializeApp(firebaseConfig);
             db = firebase.firestore();
             firebase.auth().onAuthStateChanged(async (user) => {
-                if (user) { currentUser = user; updateSyncStatusDisplay('🔄 Authenticated','syncing', lastCloudSyncTime); if(db && !_cloudUnsub){ try{ _cloudUnsub = db.collection('school').doc('shared').onSnapshot(function(doc){ if(!doc.exists) return; let d=doc.data(); updateCloudDiag(d); let rev=cloudRevOf(d); if(!shouldLoadCloud(d)){ if(_localDirty&&rev>_lastSeenCloudRev){ updateSyncStatusDisplay('⚠️ Cloud changed elsewhere','offline',lastCloudSyncTime); showToast("Cloud changed on another device — use Check & Sync to review","warning"); } return; }  _applyingRemote=true; try{ applyCloudData(d); }finally{ _applyingRemote=false; } _localDirty=false; lastCloudSyncTime=Date.now(); showToast("Updated from cloud"); updateSyncStatusDisplay('☁️ Updated from cloud','online',lastCloudSyncTime); }, function(err){ console.warn('Cloud listener error:',err.message); }); }catch(e){ console.warn('Cloud listener failed:',e.message); } } manualRetrySync(); }
+                if (user) { currentUser = user; updateSyncStatusDisplay('🔄 Authenticated','syncing', lastCloudSyncTime); if(db && !_cloudUnsub){ try{ _cloudUnsub = db.collection('school').doc('shared').onSnapshot(function(doc){ if(!doc.exists) return; let d=doc.data(); updateCloudDiag(d); let rev=cloudRevOf(d); if(!shouldLoadCloud(d)){ if(_localDirty&&rev>_lastSeenCloudRev){ updateSyncStatusDisplay('⚠️ Cloud changed elsewhere','offline',lastCloudSyncTime); showToast("Cloud changed on another device — use Check for newer cloud data to review","warning"); showConflictPanel(); } return; }  _applyingRemote=true; try{ applyCloudData(d); }finally{ _applyingRemote=false; } _localDirty=false; lastCloudSyncTime=Date.now(); showToast("Updated from cloud"); updateSyncStatusDisplay('☁️ Updated from cloud','online',lastCloudSyncTime); }, function(err){ console.warn('Cloud listener error:',err.message); }); }catch(e){ console.warn('Cloud listener failed:',e.message); } } manualRetrySync(); }
                 else { firebase.auth().signInAnonymously().catch(e => { console.warn('Anonymous auth failed:', e.message); updateSyncStatusDisplay('⚠️ Auth failed — local only','offline', lastCloudSyncTime); }); }
             });
         } catch(e) { console.warn('Firebase init error:', e.message); updateSyncStatusDisplay('⚠️ Firebase error — local only','offline', null); }
     }
 
     document.addEventListener('DOMContentLoaded', () => {
-        loadFromLocal(); updateAll(); changeViewType('teacher'); initFirebase();
+        loadFromLocal(); updateAll(); changeViewType('teacher'); maybeAskEditorName(); initFirebase();
     });
 
     window.switchTab=switchTab; window.addClass=addClass; window.quickAdd=quickAdd; window.editClassById=editClassById; window.clearClassForm=clearClassForm;
@@ -1764,6 +1848,7 @@
     window.clearSubjectForm=clearSubjectForm; window.loadPeriods=loadPeriods; window.addPeriodRow=addPeriodRow;
     window.removePeriodRow=removePeriodRow; window.savePeriods=savePeriods; window.clonePeriods=clonePeriods;
     window.deleteInvalidSchedule=deleteInvalidSchedule; window.toggleRows=toggleRows;
+    window.loadHistoryList=loadHistoryList; window.restoreSnapshot=restoreSnapshot; window.saveEditorName=saveEditorName; window.saveEditorNameFromSettings=saveEditorNameFromSettings; window.openAddFirstLessonForTeacher=openAddFirstLessonForTeacher; window.exportConflictCopy=exportConflictCopy; window.loadCloudFromConflict=loadCloudFromConflict; window.dismissConflict=dismissConflict; window.markPeriodsDirty=markPeriodsDirty; window.setPeriodSkipped=setPeriodSkipped; window.showConflictPanel=showConflictPanel; window.hideConflictPanel=hideConflictPanel;
 </script>
 </body>
 </html>
